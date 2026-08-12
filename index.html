@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SONY STORE | Luxury Watchmaker</title>
+    <meta name="description" content="SONY STORE presents. Precision crafted luxury watches built with Swiss movements, sapphire crystals, and solid 18k gold.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+    <!-- SITE HEADER & NAVIGATION -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Brand Logo -->
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <!-- Navigation Links -->
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link active">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+
+                <!-- Header Actions -->
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">
+                        🔍
+                    </a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">
+                        ☰
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-grid">
+                <div class="hero-content reveal">
+                    <div class="hero-tag">✨ SONY STORE EXCLUSIVE SHOWROOM</div>
+                    <h1 class="hero-title">
+                        TIME, <br>
+                        <span class="gold-text">REDEFINED.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Precision crafted for every moment. Experience the pinnacle of Swiss horology, solid gold alloys, and flying tourbillon movements.
+                    </p>
+                    <div class="hero-buttons">
+                        <a href="shop.html" class="btn-primary">Explore Collection →</a>
+                        <a href="shop.html?sort=popularity" class="btn-secondary">View Best Sellers</a>
+                    </div>
+                </div>
+                <div class="hero-visual reveal">
+                    <div class="hero-glow-ring"></div>
+                    <div class="hero-image-wrapper">
+                        <!-- Dynamic SVG hero watch visual render -->
+                        <img id="heroWatchImg" src="" alt="SONY STORE Royal Tourbillon" style="width: 100%; filter: drop-shadow(0 25px 50px rgba(212, 175, 55, 0.3));">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VALUE PROPOSITION BAR -->
+    <section style="background: rgba(18, 20, 30, 0.6); padding: 36px 0; border-top: 1px solid var(--border-gold); border-bottom: 1px solid var(--border-subtle);">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 30px; text-align: center;">
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">⚙</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">Swiss Movement</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">Calibre CH-Series automatic engines</p>
+                </div>
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">💎</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">Sapphire Crystal</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">Unscratchable double anti-reflective glass</p>
+                </div>
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">🛡</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">5-Year Warranty</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">International SONY STORE concierge care</p>
+                </div>
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">✈</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">Insured Delivery</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">Complimentary express worldwide shipping</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURED WATCHES SECTION -->
+    <section class="section">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-subtitle">HAUTE HORLOGERIE</span>
+                <h2 class="section-title">FEATURED <span class="gold-text">TIMEPIECES</span></h2>
+            </div>
+
+            <!-- Products Grid populated dynamically -->
+            <div class="products-grid" id="featuredProductsGrid"></div>
+
+            <div style="text-align: center; margin-top: 50px;">
+                <a href="shop.html" class="btn-secondary" style="padding: 14px 40px;">View Full Collection (${products.length} Models)</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CATEGORY HIGHLIGHTS -->
+    <section class="section" style="background: radial-gradient(circle at 30% 50%, rgba(212, 175, 55, 0.05) 0%, transparent 60%);">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-subtitle">CURATED COLLECTIONS</span>
+                <h2 class="section-title">EXPLORE BY <span class="gold-text">CATEGORY</span></h2>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+                <a href="shop.html?category=Luxury" class="glass-panel" style="padding: 40px 30px; display: block; transition: var(--transition-smooth); text-align: center; border-color: var(--border-gold);">
+                    <div style="font-size: 2.5rem; margin-bottom: 16px;">👑</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 8px;">LUXURY & TOURBILLON</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">18k Gold, Diamonds & Grand Complications</p>
+                </a>
+                <a href="shop.html?category=Sport" class="glass-panel" style="padding: 40px 30px; display: block; transition: var(--transition-smooth); text-align: center; border-color: var(--border-gold);">
+                    <div style="font-size: 2.5rem; margin-bottom: 16px;">🏎</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 8px;">SPORT & CHRONOGRAPH</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Grade 5 Titanium, Carbon Fiber & 300m GMT</p>
+                </a>
+                <a href="shop.html?category=Automatic" class="glass-panel" style="padding: 40px 30px; display: block; transition: var(--transition-smooth); text-align: center; border-color: var(--border-gold);">
+                    <div style="font-size: 2.5rem; margin-bottom: 16px;">⏳</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 8px;">AUTOMATIC SKELETON</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Openwork dials displaying mechanical mastery</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIP CONCIERGE NEWSLETTER -->
+    <section class="section" style="padding: 60px 0;">
+        <div class="container">
+            <div class="glass-panel" style="padding: 60px 40px; text-align: center; max-width: 800px; margin: 0 auto; background: linear-gradient(135deg, rgba(18,20,30,0.9) 0%, rgba(9,10,15,0.95) 100%);">
+                <span class="section-subtitle">VIP SHOWROOM MEMBERSHIP</span>
+                <h3 style="font-family: var(--font-heading); font-size: 2rem; margin-bottom: 16px;">RECEIVE PRIVATE INVITATIONS</h3>
+                <p style="color: var(--text-muted); margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    Subscribe to receive early allocation access for limited edition SONY STORE timepieces and horology galas.
+                </p>
+                <form onsubmit="event.preventDefault(); showToast('Welcome to SONY STORE Private Circle', '👑');" style="display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap;">
+                    <input type="email" placeholder="Enter your email address..." required style="flex: 1; min-width: 240px; padding: 14px 20px; border-radius: var(--radius-full); background: rgba(0,0,0,0.5); border: 1px solid var(--border-gold); color: #fff; outline: none;">
+                    <button type="submit" class="btn-primary" style="padding: 14px 30px;">Request Access</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        ✉️ support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">✕</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody">
+                <!-- Dynamic Cart Drawer Content -->
+            </div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="js/products.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/animations.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render Hero Watch SVG
+            const heroWatchImg = document.getElementById('heroWatchImg');
+            if (heroWatchImg && products.length > 0) {
+                heroWatchImg.src = products[0].images[0];
+            }
+
+            // Render Featured Products Grid on Homepage
+            const grid = document.getElementById('featuredProductsGrid');
+            if (grid && typeof products !== 'undefined') {
+                grid.innerHTML = products.slice(0, 6).map(renderProductCard).join('');
+            }
+        });
+    </script>
+</body>
+</html>

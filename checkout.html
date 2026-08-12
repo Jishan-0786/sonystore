@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | SONY STORE</title>
+    <meta name="description" content="Complete your SONY STORE luxury timepiece order with insured white-glove delivery in Nepal.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 1.8fr 1.2fr;
+            gap: 40px;
+            align-items: start;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SITE HEADER -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CHECKOUT HERO BANNER -->
+    <section class="shop-banner" style="padding-bottom: 40px;">
+        <div class="container reveal">
+            <span class="section-subtitle">SECURE LUXURY TRANSACTION</span>
+            <h1 class="section-title watch-collection-heading">ORDER <span class="gold-text">CHECKOUT</span></h1>
+            <p class="watch-collection-subtitle">
+                Enter your delivery preferences for insured white-glove delivery.
+            </p>
+            <div class="watch-collection-divider"></div>
+        </div>
+    </section>
+
+    <!-- CHECKOUT MAIN CONTENT -->
+    <section class="section" style="padding-top: 30px;">
+        <div class="container">
+            
+            <form id="mainCheckoutForm" class="checkout-grid">
+                
+                <!-- LEFT: CUSTOMER & ADDRESS DETAILS -->
+                <div style="display: flex; flex-direction: column; gap: 30px;">
+                    
+                    <!-- CUSTOMER INFORMATION -->
+                    <div class="glass-panel" style="padding: 30px;">
+                        <h3 style="font-family: var(--font-heading); font-size: 1.3rem; color: var(--gold-light); margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">1. CUSTOMER INFORMATION</h3>
+                        
+                        <div class="contact-form">
+                            <div class="form-group">
+                                <label>Full Name *</label>
+                                <input type="text" id="chkName" class="form-input" placeholder="e.g. Arbaj Ansari" required>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label>Phone Number *</label>
+                                    <input type="text" id="chkPhone" class="form-input" required readonly style="opacity: 0.8;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email Address (Optional)</label>
+                                    <input type="email" id="chkEmail" class="form-input" placeholder="you@domain.com">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DELIVERY ADDRESS -->
+                    <div class="glass-panel" style="padding: 30px;">
+                        <h3 style="font-family: var(--font-heading); font-size: 1.3rem; color: var(--gold-light); margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">2. DELIVERY ADDRESS</h3>
+                        
+                        <div class="contact-form">
+                            <div class="form-group">
+                                <label>House / Street Address *</label>
+                                <input type="text" id="chkStreet" class="form-input" placeholder="e.g. Durbar Marg, Ward No. 1" required>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label>City *</label>
+                                    <input type="text" id="chkCity" class="form-input" placeholder="e.g. Kathmandu" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Province / State *</label>
+                                    <input type="text" id="chkProvince" class="form-input" placeholder="e.g. Bagmati Province" required>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label>Postal Code</label>
+                                    <input type="text" id="chkPostal" class="form-input" placeholder="e.g. 44600">
+                                </div>
+                                <div class="form-group">
+                                    <label>Country *</label>
+                                    <input type="text" id="chkCountry" class="form-input" value="Nepal" required readonly style="font-weight: 700; color: var(--gold-light);">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAYMENT METHOD -->
+                    <div class="glass-panel" style="padding: 30px;">
+                        <h3 style="font-family: var(--font-heading); font-size: 1.3rem; color: var(--gold-light); margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">3. PAYMENT METHOD</h3>
+                        
+                        <div style="padding: 16px; border: 1px solid var(--border-gold); background: rgba(212, 175, 55, 0.08); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 14px;">
+                            <input type="radio" id="payCod" name="paymentMethod" value="Cash on Delivery" checked style="accent-color: var(--gold-primary); transform: scale(1.2);">
+                            <div>
+                                <label for="payCod" style="font-weight: 700; color: var(--gold-light); font-size: 1rem; cursor: pointer;">💵 Cash on Delivery (COD)</label>
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">Pay with cash upon personal white-glove courier delivery to your doorstep.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT: ORDER SUMMARY -->
+                <div class="glass-panel" style="padding: 30px; border-color: var(--border-gold); position: sticky; top: 100px;">
+                    <h3 style="font-family: var(--font-heading); font-size: 1.4rem; color: var(--gold-light); margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">ORDER SUMMARY</h3>
+                    
+                    <div id="checkoutItemsList" style="margin-bottom: 20px; max-height: 280px; overflow-y: auto;">
+                        <!-- Rendered via JS -->
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem;">
+                            <span style="color: var(--text-muted);">Subtotal:</span>
+                            <span id="chkSubtotal" style="font-weight: 700;">$0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem;">
+                            <span style="color: var(--text-muted);">Insured Courier:</span>
+                            <span id="chkShipping" style="font-weight: 700; color: var(--success);">COMPLIMENTARY</span>
+                        </div>
+                        <div style="border-top: 1px solid var(--border-gold); padding-top: 16px; margin-top: 16px; display: flex; justify-content: space-between; margin-bottom: 24px;">
+                            <span style="font-family: var(--font-heading); font-size: 1.1rem;">Grand Total:</span>
+                            <span id="chkTotal" style="font-size: 1.6rem; font-weight: 900; color: var(--gold-light);">$0</span>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width: 100%; text-align: center; padding: 16px; font-size: 1rem;">
+                            PLACE ORDER NOW →
+                        </button>
+
+                        <div style="margin-top: 20px; text-align: center; font-size: 0.8rem; color: var(--text-dim);">
+                            🔒 256-bit Encrypted Transaction • SONY STORE Guarantee
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="wishlist.html">My Wishlist</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        ✉️ support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">✕</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody"></div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="js/products.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/animations.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Require Login for Checkout
+            if (!requireCustomerAuth('checkout.html')) return;
+
+            const user = getLoggedInUser();
+            if (user) {
+                document.getElementById('chkPhone').value = user.phone;
+                if (user.name && user.name !== 'Valued Customer') {
+                    document.getElementById('chkName').value = user.name;
+                }
+            }
+
+            const cart = getStoredCart();
+            if (cart.length === 0) {
+                showToast('Your shopping bag is empty!', '⚠');
+                setTimeout(() => window.location.href = 'shop.html', 1500);
+                return;
+            }
+
+            // Render Items Summary
+            const itemsContainer = document.getElementById('checkoutItemsList');
+            let subtotal = 0;
+
+            itemsContainer.innerHTML = cart.map(item => {
+                const itemTotal = item.price * item.quantity;
+                subtotal += itemTotal;
+                return `
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                        <img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: contain; background: var(--bg-dark); border-radius: 4px; padding: 4px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.9rem; font-weight: 700;">${item.name}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">$${item.price.toLocaleString()} × ${item.quantity}</div>
+                        </div>
+                        <div style="font-weight: 700; color: var(--gold-light);">$${itemTotal.toLocaleString()}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const shipping = subtotal > 5000 || subtotal === 0 ? 0 : 150;
+            const grandTotal = subtotal + shipping;
+
+            document.getElementById('chkSubtotal').textContent = `$${subtotal.toLocaleString()}`;
+            document.getElementById('chkShipping').textContent = shipping === 0 ? 'COMPLIMENTARY' : `$${shipping.toLocaleString()}`;
+            document.getElementById('chkTotal').textContent = `$${grandTotal.toLocaleString()}`;
+
+            // Submit Order
+            document.getElementById('mainCheckoutForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const orderData = {
+                    name: document.getElementById('chkName').value.trim(),
+                    phone: document.getElementById('chkPhone').value.trim(),
+                    email: document.getElementById('chkEmail').value.trim(),
+                    street: document.getElementById('chkStreet').value.trim(),
+                    city: document.getElementById('chkCity').value.trim(),
+                    province: document.getElementById('chkProvince').value.trim(),
+                    postal: document.getElementById('chkPostal').value.trim(),
+                    country: document.getElementById('chkCountry').value.trim() || 'Nepal',
+                    items: cart,
+                    subtotal: subtotal,
+                    shipping: shipping,
+                    total: grandTotal,
+                    paymentMethod: 'Cash on Delivery'
+                };
+
+                const created = createOrder(orderData);
+                showToast('Order Placed Successfully!', '🎉');
+
+                setTimeout(() => {
+                    window.location.href = `order-success.html?orderId=${created.id}`;
+                }, 800);
+            });
+        });
+    </script>
+</body>
+</html>

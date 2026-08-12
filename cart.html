@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Bag | SONY STORE</title>
+    <meta name="description" content="Review your selected luxury timepieces and proceed to secure insured checkout with SONY STORE VIP Concierge.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+    <!-- SITE HEADER -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CART PAGE HERO HEADER -->
+    <section class="shop-banner" style="padding-bottom: 40px;">
+        <div class="container">
+            <span class="section-subtitle">YOUR SELECTED TIMEPIECES</span>
+            <h1 class="section-title">SHOPPING <span class="gold-text">BAG</span></h1>
+        </div>
+    </section>
+
+    <!-- MAIN CART CONTENT -->
+    <section class="section" style="padding-top: 30px;">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: 2.2fr 1fr; gap: 40px; align-items: start;">
+                
+                <!-- CART ITEMS TABLE -->
+                <div class="glass-panel" style="padding: 24px; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-gold); text-align: left;">
+                                <th style="padding: 12px 10px; font-family: var(--font-heading); color: var(--gold-light); font-size: 0.9rem;">TIMEPIECE</th>
+                                <th style="padding: 12px 10px; font-family: var(--font-heading); color: var(--gold-light); font-size: 0.9rem;">PRICE</th>
+                                <th style="padding: 12px 10px; font-family: var(--font-heading); color: var(--gold-light); font-size: 0.9rem;">QUANTITY</th>
+                                <th style="padding: 12px 10px; font-family: var(--font-heading); color: var(--gold-light); font-size: 0.9rem;">TOTAL</th>
+                                <th style="padding: 12px 10px; text-align: center; color: var(--gold-light);"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartTableBody">
+                            <!-- Populated dynamically via cart.js -->
+                        </tbody>
+                    </table>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px;">
+                        <a href="shop.html" class="btn-secondary" style="padding: 10px 24px; font-size: 0.85rem;">← Continue Shopping</a>
+                        <button onclick="clearCart()" style="background: none; border: none; color: var(--text-dim); text-decoration: underline; cursor: pointer; font-size: 0.85rem;">Clear Entire Bag</button>
+                    </div>
+                </div>
+
+                <!-- ORDER SUMMARY CARD -->
+                <div class="glass-panel" style="padding: 30px; border-color: var(--border-gold);">
+                    <h3 style="font-family: var(--font-heading); font-size: 1.4rem; color: var(--gold-light); margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">ORDER SUMMARY</h3>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 14px; font-size: 0.95rem;">
+                        <span style="color: var(--text-muted);">Subtotal:</span>
+                        <span id="cartPageSubtotal" style="font-weight: 700;">$0</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 14px; font-size: 0.95rem;">
+                        <span style="color: var(--text-muted);">Insured Courier:</span>
+                        <span id="cartPageShipping" style="font-weight: 700; color: var(--success);">COMPLIMENTARY</span>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-gold); padding-top: 16px; margin-top: 16px; display: flex; justify-content: space-between; margin-bottom: 24px;">
+                        <span style="font-family: var(--font-heading); font-size: 1.1rem;">Grand Total:</span>
+                        <span id="cartPageTotal" style="font-size: 1.5rem; font-weight: 900; color: var(--gold-light);">$0</span>
+                    </div>
+
+                    <a href="checkout.html" class="btn-primary" style="display: block; text-align: center; width: 100%;">Proceed to VIP Checkout →</a>
+
+                    <div style="margin-top: 20px; text-align: center; font-size: 0.8rem; color: var(--text-dim);">
+                        🔒 256-bit Encrypted Luxury Transaction
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- CHECKOUT MODAL POPUP -->
+    <div id="checkoutModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px;">
+        <div class="glass-panel" style="width: 100%; max-width: 550px; padding: 36px; position: relative;">
+            <button onclick="document.getElementById('checkoutModal').style.display = 'none'" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">✕</button>
+
+            <h3 style="font-family: var(--font-heading); font-size: 1.6rem; color: var(--gold-light); margin-bottom: 8px;">SONY STORE VIP CHECKOUT</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 24px;">Enter your delivery preferences for personal white-glove courier delivery.</p>
+
+            <form id="checkoutForm" class="contact-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" class="form-input" placeholder="Lord / Lady / Mr. / Ms..." required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" class="form-input" placeholder="vip@domain.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Shipping Address</label>
+                    <input type="text" class="form-input" placeholder="Luxury residence or penthouse address..." required>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 10px; padding: 14px;">Confirm & Dispatch Timepiece</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        ✉️ support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">✕</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody"></div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="js/products.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/animations.js"></script>
+</body>
+</html>
