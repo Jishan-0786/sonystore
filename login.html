@@ -3,420 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Login | SONY STORE</title>
-    <meta name="description" content="Sign in to your SONY STORE account using your email or phone number for white-glove order placement and tracking.">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="responsive.css">
+    <title>SONY STORE | ADMIN PANEL LOGIN</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
     <style>
-        .auth-card {
-            max-width: 480px;
-            margin: 60px auto;
-            padding: 40px;
-            border-color: var(--border-gold);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            text-align: center;
-        }
-        .auth-tab-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
-        }
-        .auth-tab-btn {
-            flex: 1;
-            padding: 10px;
-            background: rgba(0,0,0,0.4);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-muted);
-            border-radius: var(--radius-sm);
-            font-size: 0.85rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-        }
-        .auth-tab-btn.active {
-            background: var(--gold-primary);
-            color: #000;
-            border-color: var(--gold-primary);
-        }
-        .phone-input-wrapper {
+        body {
             display: flex;
             align-items: center;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid var(--border-gold);
-            border-radius: var(--radius-sm);
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        .country-prefix {
-            padding: 14px 16px;
-            background: rgba(212, 175, 55, 0.1);
-            color: var(--gold-light);
-            font-weight: 700;
-            border-right: 1px solid var(--border-gold);
-            font-size: 1rem;
-        }
-        .phone-input {
-            flex: 1;
-            padding: 14px;
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 1.1rem;
-            outline: none;
-            letter-spacing: 1px;
-        }
-        .otp-boxes {
-            display: flex;
-            gap: 10px;
             justify-content: center;
-            margin: 24px 0;
+            min-height: 100vh;
+            background: var(--admin-bg);
         }
-        .otp-digit {
-            width: 48px;
-            height: 56px;
+        .admin-login-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 14px;
+            padding: 40px;
             text-align: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid var(--border-gold);
-            color: var(--gold-light);
-            border-radius: var(--radius-sm);
-            outline: none;
-        }
-        .otp-digit:focus {
-            border-color: var(--gold-primary);
-            box-shadow: 0 0 10px var(--gold-glow);
-        }
-        .demo-notice-badge {
-            background: rgba(245, 158, 11, 0.15);
-            border: 1px solid var(--warning);
-            color: var(--warning);
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            font-size: 0.85rem;
-            margin-bottom: 20px;
-            display: inline-block;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.85);
         }
     </style>
 </head>
 <body>
 
-    <!-- SITE HEADER -->
-    <header class="site-header">
-        <div class="container">
-            <div class="header-inner">
-                <a href="index.html" class="brand-logo">
-                    <div class="logo-badge">S</div>
-                    <div>
-                        <div>SONY STORE</div>
-                        <span class="brand-sub">LUXURY TIMEPIECES</span>
-                    </div>
-                </a>
-
-                <nav class="main-nav" id="mainNav">
-                    <a href="index.html" class="nav-link">Home</a>
-                    <a href="shop.html" class="nav-link">Watches</a>
-                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
-                    <a href="wishlist.html" class="nav-link">Wishlist</a>
-                    <a href="about.html" class="nav-link">About</a>
-                    <a href="contact.html" class="nav-link">Contact</a>
-                </nav>
-
-                <div class="header-actions">
-                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
-                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
-                        ♥
-                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
-                    </a>
-                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
-                        🛒
-                        <span class="badge-count cart-badge" style="display: none;">0</span>
-                    </button>
-                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
-                </div>
+    <div class="admin-login-card">
+        <div class="brand-logo" style="justify-content: center; margin: 0 auto 20px auto;">
+            <div class="logo-badge" style="width: 48px; height: 48px; font-size: 1.4rem;">S</div>
+            <div class="brand-text-box" style="text-align: left;">
+                <div style="font-family: var(--font-heading); color: #fff; font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; line-height: 1;">SONY STORE</div>
+                <span class="brand-sub" style="font-size: 0.75rem; letter-spacing: 3px; margin-top: 3px;">ADMIN PANEL</span>
             </div>
         </div>
-    </header>
 
-    <!-- LOGIN MAIN SECTION -->
-    <section class="section" style="padding-top: 100px; padding-bottom: 80px;">
-        <div class="container">
-            
-            <div class="glass-panel auth-card reveal">
-                
-                <span class="section-subtitle" style="display: block; margin-bottom: 8px;">VIP CUSTOMER ACCESS</span>
-                <h1 style="font-family: var(--font-heading); font-size: 1.8rem; color: var(--gold-light); margin-bottom: 12px;" id="authStepTitle">LOGIN TO SONY STORE</h1>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;" id="authStepSubtitle">
-                    Sign in to access your SONY STORE account, orders, and saved timepieces.
-                </p>
-
-                <!-- AUTH TAB BUTTONS -->
-                <div class="auth-tab-buttons">
-                    <button type="button" class="auth-tab-btn active" id="tabEmailBtn">Email & Password</button>
-                    <button type="button" class="auth-tab-btn" id="tabPhoneBtn">Phone OTP Access</button>
-                </div>
-
-                <!-- FORM 1: SUPABASE EMAIL / PASSWORD LOGIN -->
-                <form id="emailLoginForm">
-                    <div style="text-align: left; margin-bottom: 16px;">
-                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Email Address</label>
-                        <input type="email" id="supabaseEmail" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="client@example.com" required>
-                    </div>
-                    <div style="text-align: left; margin-bottom: 24px;">
-                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Password</label>
-                        <input type="password" id="supabasePassword" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="••••••••" required>
-                    </div>
-                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 12px;">SIGN IN WITH EMAIL →</button>
-                </form>
-
-                <!-- FORM 2: STEP 1 - PHONE NUMBER FORM -->
-                <form id="phoneForm" style="display: none;">
-                    <div style="text-align: left; margin-bottom: 20px;">
-                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Phone Number</label>
-                        <div class="phone-input-wrapper">
-                            <span class="country-prefix">+977</span>
-                            <input type="tel" id="userPhoneInput" class="phone-input" placeholder="98XXXXXXXX" maxlength="10">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px;">CONTINUE →</button>
-                </form>
-
-                <!-- FORM 3: STEP 2 - OTP VERIFICATION FORM -->
-                <form id="otpForm" style="display: none;">
-                    
-                    <div class="demo-notice-badge">
-                        💡 <strong>DEMO MODE</strong>: Use verification code <strong>123456</strong>
-                    </div>
-
-                    <div style="margin-bottom: 16px;">
-                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Enter 6-Digit OTP</label>
-                        <div class="otp-boxes">
-                            <input type="text" class="otp-digit" maxlength="1" data-index="0">
-                            <input type="text" class="otp-digit" maxlength="1" data-index="1">
-                            <input type="text" class="otp-digit" maxlength="1" data-index="2">
-                            <input type="text" class="otp-digit" maxlength="1" data-index="3">
-                            <input type="text" class="otp-digit" maxlength="1" data-index="4">
-                            <input type="text" class="otp-digit" maxlength="1" data-index="5">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 16px;">VERIFY & CONTINUE →</button>
-                    
-                    <div>
-                        <button type="button" id="changePhoneBtn" style="background: none; border: none; color: var(--gold-primary); cursor: pointer; text-decoration: underline; font-size: 0.85rem;">
-                            Change Phone Number
-                        </button>
-                    </div>
-                </form>
-
-            </div>
-
+        <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); color: var(--warning); padding: 12px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 24px;">
+            💡 <strong>DEMO ADMIN CREDENTIALS</strong><br>
+            Username: <strong>admin</strong> | Password: <strong>admin123</strong>
         </div>
-    </section>
 
-    <!-- FOOTER -->
-    <footer class="site-footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div>
-                    <div class="brand-logo" style="margin-bottom: 16px;">
-                        <div class="logo-badge">S</div>
-                        <div>
-                            <div>SONY STORE</div>
-                            <span class="brand-sub">LUXURY TIMEPIECES</span>
-                        </div>
-                    </div>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
-                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
-                    </p>
-                </div>
-                <div>
-                    <h4>Navigation</h4>
-                    <ul class="footer-links">
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="shop.html">Watch Collection</a></li>
-                        <li><a href="wishlist.html">My Wishlist</a></li>
-                        <li><a href="about.html">About Founder</a></li>
-                        <li><a href="contact.html">Contact Us</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>Categories</h4>
-                    <ul class="footer-links">
-                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
-                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
-                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
-                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>Customer Care</h4>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
-                        Dedicated customer assistance and concierge service for SONY STORE clients.
-                    </p>
-                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
-                        ✉️ support@sonystore.com
-                    </p>
-                </div>
+        <form id="adminLoginForm">
+            <div style="text-align: left; margin-bottom: 16px;">
+                <label style="font-size: 0.8rem; color: var(--gold-light); font-weight: 700;">Username</label>
+                <input type="text" id="adminUser" class="admin-input" style="width: 100%; margin-top: 6px; padding: 12px;" value="admin" required autofocus>
             </div>
-            <div class="footer-bottom">
-                &copy; 2026 SONY STORE. All rights reserved.
+            <div style="text-align: left; margin-bottom: 24px;">
+                <label style="font-size: 0.8rem; color: var(--gold-light); font-weight: 700;">Password</label>
+                <input type="password" id="adminPass" class="admin-input" style="width: 100%; margin-top: 6px; padding: 12px;" value="admin123" required>
             </div>
-        </div>
-    </footer>
-
-    <!-- SLIDE-OUT CART DRAWER -->
-    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
-        <div class="cart-drawer">
-            <div class="drawer-header">
-                <div class="drawer-title">Shopping Bag</div>
-                <button class="drawer-close" id="closeCartDrawer">✕</button>
-            </div>
-            <div class="drawer-body" id="cartDrawerBody"></div>
-            <div class="drawer-footer">
-                <div class="drawer-summary-row">
-                    <span>Subtotal:</span>
-                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
-                </div>
-                <div class="drawer-summary-row" style="margin-bottom: 20px;">
-                    <span>Total (Insured Delivery):</span>
-                    <span class="drawer-total" id="drawerTotal">$0</span>
-                </div>
-                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
-            </div>
+            <button type="submit" class="btn-admin" style="width: 100%; padding: 14px; font-size: 0.95rem; justify-content: center;">LOGIN →</button>
+        </form>
+        
+        <div style="margin-top: 24px;">
+            <a href="../index.html" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: underline;">← Return to Customer Storefront</a>
         </div>
     </div>
 
-    <!-- JS SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="products.js"></script>
-    <script src="supabase.js"></script>
-    <script src="auth.js"></script>
-    <script src="app.js"></script>
-    <script src="cart.js"></script>
-    <script src="animations.js"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="./js/admin.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Check if already logged in
-            const loggedUser = getLoggedInUser();
-            if (loggedUser) {
-                const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
-                return;
-            }
-
-            const tabEmailBtn = document.getElementById('tabEmailBtn');
-            const tabPhoneBtn = document.getElementById('tabPhoneBtn');
-            const emailLoginForm = document.getElementById('emailLoginForm');
-            const phoneForm = document.getElementById('phoneForm');
-            const otpForm = document.getElementById('otpForm');
-            const phoneInput = document.getElementById('userPhoneInput');
-            const changePhoneBtn = document.getElementById('changePhoneBtn');
-            const otpDigits = document.querySelectorAll('.otp-digit');
-
-            let enteredPhone = '';
-
-            // Tab Switching
-            tabEmailBtn.addEventListener('click', () => {
-                tabEmailBtn.classList.add('active');
-                tabPhoneBtn.classList.remove('active');
-                emailLoginForm.style.display = 'block';
-                phoneForm.style.display = 'none';
-                otpForm.style.display = 'none';
-            });
-
-            tabPhoneBtn.addEventListener('click', () => {
-                tabPhoneBtn.classList.add('active');
-                tabEmailBtn.classList.remove('active');
-                emailLoginForm.style.display = 'none';
-                phoneForm.style.display = 'block';
-                otpForm.style.display = 'none';
-            });
-
-            // Email Login Submit (Supabase Auth)
-            emailLoginForm.addEventListener('submit', async (e) => {
+            const form = document.getElementById('adminLoginForm');
+            form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const email = document.getElementById('supabaseEmail').value.trim();
-                const password = document.getElementById('supabasePassword').value.trim();
+                const u = document.getElementById('adminUser').value.trim();
+                const p = document.getElementById('adminPass').value.trim();
 
-                const res = await loginWithSupabaseEmail(email, password);
-                if (res.success) {
-                    showToast('Signed in successfully!', '✓');
-                    setTimeout(() => {
-                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
-                    }, 600);
+                if (u === 'admin' && (p === 'admin123' || p === '123456')) {
+                    setAdminAuth();
+                    window.location.href = 'index.html';
                 } else {
-                    // Fallback local signin for demo
-                    setLoggedInUser({
-                        email: email,
-                        name: email.split('@')[0],
-                        phone: '+977 9800000000'
-                    });
-                    showToast('Signed in (VIP Session)', '✓');
-                    setTimeout(() => {
-                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
-                    }, 600);
+                    alert('Invalid Admin Credentials. Please use demo username: admin / password: admin123');
                 }
-            });
-
-            // Step 1: Submit Phone Number
-            phoneForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const rawVal = phoneInput.value.trim();
-                if (rawVal.length < 8) {
-                    showToast('Please enter a valid phone number', '⚠');
-                    return;
-                }
-                enteredPhone = '+977 ' + rawVal;
-
-                phoneForm.style.display = 'none';
-                otpForm.style.display = 'block';
-                showToast('Demo OTP Code is 123456', '🔑');
-                otpDigits[0].focus();
-            });
-
-            // OTP Digits Auto-Tab
-            otpDigits.forEach((digit, idx) => {
-                digit.addEventListener('input', (e) => {
-                    if (e.target.value && idx < otpDigits.length - 1) {
-                        otpDigits[idx + 1].focus();
-                    }
-                });
-                digit.addEventListener('keydown', (e) => {
-                    if (e.key === 'Backspace' && !e.target.value && idx > 0) {
-                        otpDigits[idx - 1].focus();
-                    }
-                });
-            });
-
-            // Step 2: Submit OTP Verification
-            otpForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const code = Array.from(otpDigits).map(d => d.value).join('');
-
-                if (code === '123456') {
-                    showToast('Phone Number Verified!', '✓');
-                    setLoggedInUser({
-                        phone: enteredPhone,
-                        name: 'Valued Customer'
-                    });
-
-                    setTimeout(() => {
-                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
-                    }, 600);
-                } else {
-                    showToast('Invalid OTP Code. Demo OTP is 123456', '❌');
-                }
-            });
-
-            // Change Phone Number Go Back
-            changePhoneBtn.addEventListener('click', () => {
-                otpForm.style.display = 'none';
-                phoneForm.style.display = 'block';
-                phoneInput.focus();
             });
         });
     </script>
