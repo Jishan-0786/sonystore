@@ -62,13 +62,11 @@ async function signInWithGoogle() {
     const errorBox = document.getElementById('googleAuthErrorBox');
     const originalText = 'Continue with Google';
 
-    // Clear previous error box
     if (errorBox) {
         errorBox.style.display = 'none';
         errorBox.textContent = '';
     }
 
-    // Set loading state on button
     if (btn) {
         btn.disabled = true;
         btn.style.opacity = '0.7';
@@ -84,14 +82,10 @@ async function signInWithGoogle() {
         console.log('[DEBUG] Supabase client exists:', Boolean(client));
 
         if (!client || !client.auth) {
-            throw new Error('Supabase client is not available on window or getSupabaseClient(). Ensure supabase.js is loaded.');
+            throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
 
-        // Production redirect URL as specified in requirements
-        const redirectTarget = (window.location.hostname === 'sonywatchstore.netlify.app' || window.location.hostname.endsWith('netlify.app'))
-            ? 'https://sonywatchstore.netlify.app/login.html'
-            : `${window.location.origin}/login.html`;
-
+        const redirectTarget = window.location.origin + '/login.html';
         console.log('[DEBUG] signInWithOAuth started with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
@@ -108,28 +102,14 @@ async function signInWithGoogle() {
             throw error;
         }
 
-        // If URL returned in data, navigate immediately
         if (data && data.url) {
             console.log('[DEBUG] Redirecting browser to OAuth URL:', data.url);
             window.location.href = data.url;
-        } else {
-            // Safety timeout reset if browser navigation is handled internally
-            setTimeout(() => {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
-                }
-                if (btnText) {
-                    btnText.textContent = originalText;
-                }
-            }, 3000);
         }
 
     } catch (err) {
         console.error('[DEBUG] signInWithOAuth exception caught:', err);
 
-        // Reset button state
         if (btn) {
             btn.disabled = false;
             btn.style.opacity = '1';
@@ -141,7 +121,6 @@ async function signInWithGoogle() {
 
         const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
 
-        // Display error message directly on login page
         if (errorBox) {
             errorBox.textContent = `Google OAuth Error: ${errMessage}`;
             errorBox.style.display = 'block';

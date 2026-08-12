@@ -5,10 +5,9 @@
  * Provides real-time Database & Auth wrappers with fallback to local state.
  */
 
-const SUPABASE_URL = 'https://qwhtumvoyhoslbbnvwzf.supabase.co';
+const SUPABASE_URL = window.SUPABASE_URL || 'https://qwhtumvoyhoslbbnvwzf.supabase.co';
 
 // Configurable Supabase Publishable (Anon) Key
-// Replace window.SUPABASE_ANON_KEY with your exact Supabase anon key if customized
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3aHR1bXZveWhvc2xiYm52d3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1MDY0MDAsImV4cCI6MjA1NDA4MjQwMH0.placeholder-publishable-key';
 
 let supabaseClient = null;
@@ -16,12 +15,15 @@ let supabaseClient = null;
 function getSupabaseClient() {
     if (!supabaseClient && typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
         try {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const url = window.SUPABASE_URL || SUPABASE_URL;
+            const key = window.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY;
+            supabaseClient = supabase.createClient(url, key);
+            window.supabaseClient = supabaseClient;
         } catch (e) {
             console.warn('Supabase initialization fallback:', e);
         }
     }
-    return supabaseClient;
+    return supabaseClient || window.supabaseClient || null;
 }
 
 function isSupabaseAvailable() {
