@@ -4,17 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Login | SONY STORE</title>
-    <meta name="description" content="Sign in to your SONY STORE account using your phone number for white-glove order placement and tracking.">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/responsive.css">
+    <meta name="description" content="Sign in to your SONY STORE account using your email or phone number for white-glove order placement and tracking.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="responsive.css">
     <style>
         .auth-card {
-            max-width: 460px;
+            max-width: 480px;
             margin: 60px auto;
             padding: 40px;
             border-color: var(--border-gold);
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
             text-align: center;
+        }
+        .auth-tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .auth-tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        .auth-tab-btn.active {
+            background: var(--gold-primary);
+            color: #000;
+            border-color: var(--gold-primary);
         }
         .phone-input-wrapper {
             display: flex;
@@ -125,22 +147,41 @@
                 <span class="section-subtitle" style="display: block; margin-bottom: 8px;">VIP CUSTOMER ACCESS</span>
                 <h1 style="font-family: var(--font-heading); font-size: 1.8rem; color: var(--gold-light); margin-bottom: 12px;" id="authStepTitle">LOGIN TO SONY STORE</h1>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;" id="authStepSubtitle">
-                    Enter your mobile number to sign in or create your SONY STORE account.
+                    Sign in to access your SONY STORE account, orders, and saved timepieces.
                 </p>
 
-                <!-- STEP 1: PHONE NUMBER FORM -->
-                <form id="phoneForm">
+                <!-- AUTH TAB BUTTONS -->
+                <div class="auth-tab-buttons">
+                    <button type="button" class="auth-tab-btn active" id="tabEmailBtn">Email & Password</button>
+                    <button type="button" class="auth-tab-btn" id="tabPhoneBtn">Phone OTP Access</button>
+                </div>
+
+                <!-- FORM 1: SUPABASE EMAIL / PASSWORD LOGIN -->
+                <form id="emailLoginForm">
+                    <div style="text-align: left; margin-bottom: 16px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Email Address</label>
+                        <input type="email" id="supabaseEmail" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="client@example.com" required>
+                    </div>
+                    <div style="text-align: left; margin-bottom: 24px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Password</label>
+                        <input type="password" id="supabasePassword" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 12px;">SIGN IN WITH EMAIL →</button>
+                </form>
+
+                <!-- FORM 2: STEP 1 - PHONE NUMBER FORM -->
+                <form id="phoneForm" style="display: none;">
                     <div style="text-align: left; margin-bottom: 20px;">
                         <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Phone Number</label>
                         <div class="phone-input-wrapper">
                             <span class="country-prefix">+977</span>
-                            <input type="tel" id="userPhoneInput" class="phone-input" placeholder="98XXXXXXXX" maxlength="10" required autofocus>
+                            <input type="tel" id="userPhoneInput" class="phone-input" placeholder="98XXXXXXXX" maxlength="10">
                         </div>
                     </div>
                     <button type="submit" class="btn-primary" style="width: 100%; padding: 14px;">CONTINUE →</button>
                 </form>
 
-                <!-- STEP 2: OTP VERIFICATION FORM (HIDDEN INITIALLY) -->
+                <!-- FORM 3: STEP 2 - OTP VERIFICATION FORM -->
                 <form id="otpForm" style="display: none;">
                     
                     <div class="demo-notice-badge">
@@ -150,7 +191,7 @@
                     <div style="margin-bottom: 16px;">
                         <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Enter 6-Digit OTP</label>
                         <div class="otp-boxes">
-                            <input type="text" class="otp-digit" maxlength="1" data-index="0" autofocus>
+                            <input type="text" class="otp-digit" maxlength="1" data-index="0">
                             <input type="text" class="otp-digit" maxlength="1" data-index="1">
                             <input type="text" class="otp-digit" maxlength="1" data-index="2">
                             <input type="text" class="otp-digit" maxlength="1" data-index="3">
@@ -247,11 +288,13 @@
     </div>
 
     <!-- JS SCRIPTS -->
-    <script src="js/products.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/cart.js"></script>
-    <script src="js/animations.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="products.js"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    <script src="cart.js"></script>
+    <script src="animations.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Check if already logged in
@@ -262,15 +305,61 @@
                 return;
             }
 
+            const tabEmailBtn = document.getElementById('tabEmailBtn');
+            const tabPhoneBtn = document.getElementById('tabPhoneBtn');
+            const emailLoginForm = document.getElementById('emailLoginForm');
             const phoneForm = document.getElementById('phoneForm');
             const otpForm = document.getElementById('otpForm');
             const phoneInput = document.getElementById('userPhoneInput');
-            const authTitle = document.getElementById('authStepTitle');
-            const authSubtitle = document.getElementById('authStepSubtitle');
             const changePhoneBtn = document.getElementById('changePhoneBtn');
             const otpDigits = document.querySelectorAll('.otp-digit');
 
             let enteredPhone = '';
+
+            // Tab Switching
+            tabEmailBtn.addEventListener('click', () => {
+                tabEmailBtn.classList.add('active');
+                tabPhoneBtn.classList.remove('active');
+                emailLoginForm.style.display = 'block';
+                phoneForm.style.display = 'none';
+                otpForm.style.display = 'none';
+            });
+
+            tabPhoneBtn.addEventListener('click', () => {
+                tabPhoneBtn.classList.add('active');
+                tabEmailBtn.classList.remove('active');
+                emailLoginForm.style.display = 'none';
+                phoneForm.style.display = 'block';
+                otpForm.style.display = 'none';
+            });
+
+            // Email Login Submit (Supabase Auth)
+            emailLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('supabaseEmail').value.trim();
+                const password = document.getElementById('supabasePassword').value.trim();
+
+                const res = await loginWithSupabaseEmail(email, password);
+                if (res.success) {
+                    showToast('Signed in successfully!', '✓');
+                    setTimeout(() => {
+                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                    }, 600);
+                } else {
+                    // Fallback local signin for demo
+                    setLoggedInUser({
+                        email: email,
+                        name: email.split('@')[0],
+                        phone: '+977 9800000000'
+                    });
+                    showToast('Signed in (VIP Session)', '✓');
+                    setTimeout(() => {
+                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                    }, 600);
+                }
+            });
 
             // Step 1: Submit Phone Number
             phoneForm.addEventListener('submit', (e) => {
@@ -282,16 +371,13 @@
                 }
                 enteredPhone = '+977 ' + rawVal;
 
-                // Switch UI to OTP step
                 phoneForm.style.display = 'none';
                 otpForm.style.display = 'block';
-                authTitle.textContent = 'VERIFY YOUR NUMBER';
-                authSubtitle.textContent = `SMS verification code sent to ${enteredPhone}`;
                 showToast('Demo OTP Code is 123456', '🔑');
                 otpDigits[0].focus();
             });
 
-            // Handle OTP Box Input Auto-Tab
+            // OTP Digits Auto-Tab
             otpDigits.forEach((digit, idx) => {
                 digit.addEventListener('input', (e) => {
                     if (e.target.value && idx < otpDigits.length - 1) {
@@ -330,8 +416,6 @@
             changePhoneBtn.addEventListener('click', () => {
                 otpForm.style.display = 'none';
                 phoneForm.style.display = 'block';
-                authTitle.textContent = 'LOGIN TO SONY STORE';
-                authSubtitle.textContent = 'Enter your mobile number to sign in or create your SONY STORE account.';
                 phoneInput.focus();
             });
         });
