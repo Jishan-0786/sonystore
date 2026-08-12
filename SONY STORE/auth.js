@@ -55,11 +55,20 @@ function requireCustomerAuth(redirectUrl) {
 
 // Google OAuth Integration using existing Supabase client
 async function signInWithGoogle() {
+    console.log('[DEBUG] Google button clicked');
+
     const btn = document.getElementById('googleAuthBtn');
     const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
+    const errorBox = document.getElementById('googleAuthErrorBox');
     const originalText = 'Continue with Google';
 
-    // Show loading indicator
+    // Clear previous error box
+    if (errorBox) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+    }
+
+    // Set loading state on button
     if (btn) {
         btn.disabled = true;
         btn.style.opacity = '0.7';
@@ -71,20 +80,19 @@ async function signInWithGoogle() {
 
     try {
         const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
-        
+
+        console.log('[DEBUG] Supabase client exists:', Boolean(client));
+
         if (!client || !client.auth) {
-            throw new Error('Supabase client is not available. Check supabase.js initialization.');
+            throw new Error('Supabase client is not available on window or getSupabaseClient(). Ensure supabase.js is loaded.');
         }
 
-        // Determine exact production vs local redirect URL destination
-        let redirectTarget = 'https://sonywatchstore.netlify.app/';
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            redirectTarget = `${window.location.origin}/`;
-        } else if (window.location.origin) {
-            redirectTarget = `${window.location.origin}/`;
-        }
+        // Production redirect URL as specified in requirements
+        const redirectTarget = (window.location.hostname === 'sonywatchstore.netlify.app' || window.location.hostname.endsWith('netlify.app'))
+            ? 'https://sonywatchstore.netlify.app/login.html'
+            : `${window.location.origin}/login.html`;
 
-        console.log('Initiating Supabase Google OAuth with redirectTo:', redirectTarget);
+        console.log('[DEBUG] signInWithOAuth started with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
@@ -93,19 +101,19 @@ async function signInWithGoogle() {
             }
         });
 
-        console.log('Supabase OAuth Response Data:', data);
+        console.log('[DEBUG] returned data:', data);
+        console.log('[DEBUG] returned error:', error);
 
         if (error) {
-            console.error('Supabase signInWithOAuth Error:', error);
             throw error;
         }
 
-        // Explicitly trigger browser redirect if OAuth URL is returned
+        // If URL returned in data, navigate immediately
         if (data && data.url) {
-            console.log('Redirecting browser to Google login URL:', data.url);
+            console.log('[DEBUG] Redirecting browser to OAuth URL:', data.url);
             window.location.href = data.url;
         } else {
-            // Safety fallback timeout reset if browser doesn't immediately navigate
+            // Safety timeout reset if browser navigation is handled internally
             setTimeout(() => {
                 if (btn) {
                     btn.disabled = false;
@@ -115,13 +123,13 @@ async function signInWithGoogle() {
                 if (btnText) {
                     btnText.textContent = originalText;
                 }
-            }, 4000);
+            }, 3000);
         }
 
     } catch (err) {
-        console.error('Google Auth Failure:', err);
+        console.error('[DEBUG] signInWithOAuth exception caught:', err);
 
-        // Stop loading state on error
+        // Reset button state
         if (btn) {
             btn.disabled = false;
             btn.style.opacity = '1';
@@ -131,11 +139,16 @@ async function signInWithGoogle() {
             btnText.textContent = originalText;
         }
 
-        const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google Auth';
+        const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
+
+        // Display error message directly on login page
+        if (errorBox) {
+            errorBox.textContent = `Google OAuth Error: ${errMessage}`;
+            errorBox.style.display = 'block';
+        }
+
         if (typeof showToast === 'function') {
             showToast(`Google Auth Error: ${errMessage}`, '❌');
-        } else {
-            alert(`Google Auth Error: ${errMessage}`);
         }
     }
 }
@@ -232,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const client = getSupabaseClient();
             if (client && client.auth) {
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.log('Supabase Auth Event:', event, session);
+                    console.log('[DEBUG] Supabase Auth Event:', event, session);
 
                     if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session && session.user) {
                         const user = session.user;
@@ -263,8 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.warn('Profile sync notice:', e.message || e);
                         }
 
-                        // Auto redirect customer to account page if returning from OAuth callback
-                        if (window.location.pathname.endsWith('login.html') || window.location.hash.includes('access_token')) {
+                        // Auto redirect customer to target account page upon successful SIGNED_IN
+                        if (event === 'SIGNED_IN' || window.location.hash.includes('access_token') || window.location.pathname.endsWith('login.html')) {
                             const redirectParam = new URLSearchParams(window.location.search).get('redirect');
                             const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
                             
@@ -273,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 window.history.replaceState(null, null, window.location.pathname);
                             }
                             
+                            console.log('[DEBUG] Redirecting authenticated customer to:', targetPage);
                             window.location.href = targetPage;
                         }
                     }
