@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Management | SONY STORE Admin</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">S</div>
+            <div class="sidebar-logo-text">
+                <div style="font-family: var(--font-heading); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">SONY STORE</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">ADMIN PANEL</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">📊 <span>Dashboard</span></a>
+            <a href="orders.html" class="sidebar-link">📦 <span>Orders</span></a>
+            <a href="products.html" class="sidebar-link">⌚ <span>Products</span></a>
+            <a href="products.html?tab=stock" class="sidebar-link">📉 <span>Stock</span></a>
+            <a href="customers.html" class="sidebar-link active">👥 <span>Customers</span></a>
+            <a href="settings.html" class="sidebar-link">⚙️ <span>Settings</span></a>
+            <a href="../index.html" class="sidebar-link" target="_blank">🌐 <span>View Store</span></a>
+        </nav>
+
+        <div style="padding: 16px; border-top: 1px solid var(--admin-border-subtle);">
+            <button onclick="logoutAdmin()" class="btn-admin btn-admin-danger" style="width: 100%; font-size: 0.8rem; justify-content: center;">
+                🚪 Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-main">
+        
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <button class="mobile-admin-toggle" id="adminMobileToggle">☰</button>
+                <h2 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">CUSTOMER DIRECTORY</h2>
+            </div>
+
+            <div class="admin-header-actions">
+                <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminCurrentDate">Today</div>
+                
+                <div class="notif-wrapper">
+                    <button class="notif-btn" id="adminNotifBtn" title="Notifications">
+                        🔔
+                        <span class="notif-badge" id="adminNotifBadge" style="display: none;">0</span>
+                    </button>
+                    <div class="notif-dropdown" id="adminNotifDropdown"></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            
+            <!-- SEARCH BAR -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <input type="text" id="custSearchInput" class="admin-input" placeholder="Search customer by name, phone, or email..." style="width: 100%; max-width: 400px;">
+                <span style="color: var(--gold-primary); font-size: 0.85rem; font-weight: 700;" id="custCountBadge">0 Clients Registered</span>
+            </div>
+
+            <!-- CUSTOMERS TABLE -->
+            <div class="admin-table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>CUSTOMER NAME</th>
+                            <th>PHONE NUMBER</th>
+                            <th>EMAIL</th>
+                            <th>ORDERS PLACED</th>
+                            <th>TOTAL SPENT</th>
+                            <th>LAST ORDER DATE</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customersTbody">
+                        <!-- Populated dynamically via js/customers.js -->
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- CUSTOMER DETAILS MODAL -->
+    <div id="customerDetailModal" class="admin-modal-backdrop">
+        <div class="admin-modal">
+            <button onclick="document.getElementById('customerDetailModal').style.display = 'none'" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">✕</button>
+            <h3 style="font-family: var(--font-heading); color: var(--gold-light); margin-bottom: 16px;" id="modalCustTitle">CLIENT DETAILS</h3>
+            <div id="modalCustBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/customers.js"></script>
+</body>
+</html>

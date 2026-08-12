@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SONY STORE | ADMIN PANEL LOGIN</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--admin-bg);
+        }
+        .admin-login-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 14px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.85);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-login-card">
+        <div class="brand-logo" style="justify-content: center; margin: 0 auto 20px auto;">
+            <div class="logo-badge" style="width: 48px; height: 48px; font-size: 1.4rem;">S</div>
+            <div class="brand-text-box" style="text-align: left;">
+                <div style="font-family: var(--font-heading); color: #fff; font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; line-height: 1;">SONY STORE</div>
+                <span class="brand-sub" style="font-size: 0.75rem; letter-spacing: 3px; margin-top: 3px;">ADMIN PANEL</span>
+            </div>
+        </div>
+
+        <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); color: var(--warning); padding: 12px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 24px;">
+            💡 <strong>DEMO ADMIN CREDENTIALS</strong><br>
+            Username: <strong>admin</strong> | Password: <strong>admin123</strong>
+        </div>
+
+        <form id="adminLoginForm">
+            <div style="text-align: left; margin-bottom: 16px;">
+                <label style="font-size: 0.8rem; color: var(--gold-light); font-weight: 700;">Username</label>
+                <input type="text" id="adminUser" class="admin-input" style="width: 100%; margin-top: 6px; padding: 12px;" value="admin" required autofocus>
+            </div>
+            <div style="text-align: left; margin-bottom: 24px;">
+                <label style="font-size: 0.8rem; color: var(--gold-light); font-weight: 700;">Password</label>
+                <input type="password" id="adminPass" class="admin-input" style="width: 100%; margin-top: 6px; padding: 12px;" value="admin123" required>
+            </div>
+            <button type="submit" class="btn-admin" style="width: 100%; padding: 14px; font-size: 0.95rem; justify-content: center;">LOGIN →</button>
+        </form>
+        
+        <div style="margin-top: 24px;">
+            <a href="../index.html" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: underline;">← Return to Customer Storefront</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="./js/admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('adminLoginForm');
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const u = document.getElementById('adminUser').value.trim();
+                const p = document.getElementById('adminPass').value.trim();
+
+                if (u === 'admin' && (p === 'admin123' || p === '123456')) {
+                    setAdminAuth();
+                    window.location.href = 'index.html';
+                } else {
+                    alert('Invalid Admin Credentials. Please use demo username: admin / password: admin123');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

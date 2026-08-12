@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account | SONY STORE</title>
+    <meta name="description" content="Manage your SONY STORE VIP customer profile, view order history, and access saved wishlist timepieces.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        .account-grid {
+            display: grid;
+            grid-template-columns: 1fr 2.5fr;
+            gap: 30px;
+        }
+        .account-sidebar {
+            padding: 30px;
+            height: fit-content;
+        }
+        .account-nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 18px;
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            margin-bottom: 10px;
+            text-decoration: none;
+        }
+        .account-nav-btn:hover, .account-nav-btn.active {
+            background: rgba(212, 175, 55, 0.12);
+            border-color: var(--border-gold);
+            color: var(--gold-light);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SITE HEADER -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ACCOUNT HERO BANNER -->
+    <section class="shop-banner" style="padding-bottom: 40px;">
+        <div class="container reveal">
+            <span class="section-subtitle">VIP CLIENT PORTAL</span>
+            <h1 class="section-title watch-collection-heading">MY <span class="gold-text">ACCOUNT</span></h1>
+            <p class="watch-collection-subtitle">
+                Welcome back to SONY STORE Concierge.
+            </p>
+            <div class="watch-collection-divider"></div>
+        </div>
+    </section>
+
+    <!-- ACCOUNT MAIN CONTENT -->
+    <section class="section" style="padding-top: 30px;">
+        <div class="container">
+            
+            <div class="account-grid">
+                
+                <!-- SIDEBAR NAV -->
+                <div class="glass-panel account-sidebar">
+                    <div style="text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle);">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;" id="avatarInitial">
+                            👤
+                        </div>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem;" id="accUserName">Valued Client</h4>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" id="accUserPhone">+977 XXXXXXXXXX</div>
+                        <span class="stock-badge in-stock" style="margin-top: 10px; display: inline-block;">VIP Verified</span>
+                    </div>
+
+                    <a href="account.html" class="account-nav-btn active">👤 Profile Overview</a>
+                    <a href="orders.html" class="account-nav-btn">📦 My Orders</a>
+                    <a href="wishlist.html" class="account-nav-btn">♥ Saved Wishlist</a>
+                    <a href="cart.html" class="account-nav-btn">🛒 Shopping Bag</a>
+                    
+                    <button onclick="logoutUser()" class="account-nav-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3); margin-top: 20px;">
+                        🚪 Logout
+                    </button>
+                </div>
+
+                <!-- MAIN DASHBOARD CONTENT -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <div class="glass-panel" style="padding: 30px;">
+                        <h3 style="font-family: var(--font-heading); font-size: 1.3rem; color: var(--gold-light); margin-bottom: 16px;">ACCOUNT SUMMARY</h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Orders</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: var(--gold-primary); margin-top: 4px;" id="accTotalOrders">0</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Wishlist Items</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: var(--gold-primary); margin-top: 4px;" id="accWishlistCount">0</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Member Status</div>
+                                <div style="font-size: 1.1rem; font-weight: 700; color: var(--success); margin-top: 8px;">Active Session</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RECENT ORDERS SNAPSHOT -->
+                    <div class="glass-panel" style="padding: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="font-family: var(--font-heading); font-size: 1.3rem; color: var(--gold-light);">RECENT ORDERS</h3>
+                            <a href="orders.html" style="color: var(--gold-primary); font-size: 0.85rem; text-decoration: underline;">View All Orders →</a>
+                        </div>
+                        <div id="recentOrdersContainer">
+                            <!-- Populated via script -->
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="wishlist.html">My Wishlist</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        ✉️ support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">✕</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody"></div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- JS SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/products.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/animations.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Protect Account Page
+            if (!requireCustomerAuth()) return;
+
+            const user = getLoggedInUser();
+            if (user) {
+                document.getElementById('accUserPhone').textContent = user.phone;
+                document.getElementById('accUserName').textContent = user.name || 'Valued Client';
+            }
+
+            const orders = getCustomerOrders(user ? user.phone : '');
+            const wishlist = getStoredWishlist();
+
+            document.getElementById('accTotalOrders').textContent = orders.length;
+            document.getElementById('accWishlistCount').textContent = wishlist.length;
+
+            const recentContainer = document.getElementById('recentOrdersContainer');
+            if (orders.length === 0) {
+                recentContainer.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                        No orders placed yet. Explore our watch collection to place your first order.
+                        <div style="margin-top: 14px;">
+                            <a href="shop.html" class="btn-primary" style="padding: 8px 20px; font-size: 0.85rem;">Browse Watches</a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                recentContainer.innerHTML = orders.slice(0, 3).map(o => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border-subtle);">
+                        <div>
+                            <div style="font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">${o.id}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${new Date(o.date).toLocaleDateString()} — ${o.items.length} Timepiece${o.items.length === 1 ? '' : 's'}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 700; color: #fff;">$${o.total.toLocaleString()}</div>
+                            <span class="stock-badge ${o.status === 'Delivered' ? 'in-stock' : 'low-stock'}">${o.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timepiece Details | SONY STORE</title>
+    <meta name="description" content="View detailed specifications, movement details, stock status, and high-resolution images for luxury timepieces at SONY STORE.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="responsive.css">
+</head>
+<body>
+
+    <!-- SITE HEADER -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="shop.html" class="nav-link active">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PRODUCT DETAILS MAIN SECTION -->
+    <section class="product-detail-section" id="productDetailSection">
+        <div class="container">
+            
+            <!-- Breadcrumbs -->
+            <div style="margin-bottom: 30px; font-size: 0.85rem; color: var(--text-muted);">
+                <a href="index.html" style="color: var(--text-muted);">Home</a> / 
+                <a href="shop.html" style="color: var(--text-muted);">Collection</a> / 
+                <span id="breadcrumbTitle" style="color: var(--gold-light); font-weight: 600;">Timepiece Details</span>
+            </div>
+
+            <div class="product-detail-grid">
+                
+                <!-- LEFT: Gallery Viewer & Zoom -->
+                <div class="gallery-wrapper">
+                    <div class="main-image-viewer" id="mainImageViewer">
+                        <img id="productMainImage" src="" alt="SONY STORE Watch Details">
+                    </div>
+                    <div class="thumbnail-row" id="thumbnailRow">
+                        <!-- Dynamically populated thumbnails -->
+                    </div>
+                </div>
+
+                <!-- RIGHT: Detailed Product Metadata & Actions -->
+                <div class="detail-info">
+                    <div>
+                        <span class="detail-brand" id="productBrand">SONY STORE</span>
+                        <h1 class="detail-title" id="productTitle">Loading Timepiece...</h1>
+                        <div class="rating-row" id="productRating" style="margin-top: 8px;"></div>
+                    </div>
+
+                    <!-- Stock Status Indicator Badge -->
+                    <div>
+                        <span id="productStockBadge" class="stock-badge">Checking availability...</span>
+                    </div>
+
+                    <!-- Pricing Box -->
+                    <div class="detail-price-box">
+                        <span class="detail-price" id="productPrice">$0</span>
+                        <span class="detail-old-price" id="productOldPrice" style="display: none;">$0</span>
+                        <span class="discount-tag" id="productDiscount" style="display: none;">SAVE 0%</span>
+                    </div>
+
+                    <!-- Description -->
+                    <p class="detail-description" id="productDescription">
+                        Loading detailed specifications and craftsmanship story...
+                    </p>
+
+                    <!-- Technical Specifications Table -->
+                    <div class="glass-panel" style="padding: 20px;">
+                        <h4 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light); margin-bottom: 12px;">TECHNICAL SPECIFICATIONS</h4>
+                        <table class="specs-table">
+                            <tbody>
+                                <tr>
+                                    <td class="specs-label">Material:</td>
+                                    <td class="specs-value" id="specMaterial">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="specs-label">Movement:</td>
+                                    <td class="specs-value" id="specMovement">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="specs-label">Case Diameter:</td>
+                                    <td class="specs-value" id="specCase">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="specs-label">Strap Material:</td>
+                                    <td class="specs-value" id="specStrap">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="specs-label">Water Resistance:</td>
+                                    <td class="specs-value" id="specWater">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="specs-label">SKU Reference:</td>
+                                    <td class="specs-value" id="productSku">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Quantity & Action Controls -->
+                    <div class="action-box">
+                        <div class="quantity-control">
+                            <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Quantity:</span>
+                            <button class="qty-btn" id="qtyMinus">-</button>
+                            <span class="qty-display" id="productQtyDisplay">1</span>
+                            <button class="qty-btn" id="qtyPlus">+</button>
+                        </div>
+
+                        <div class="btn-group-detail">
+                            <button class="btn-primary" id="detailAddToCartBtn">Add to Cart</button>
+                            <button class="btn-buy-now" id="detailBuyNowBtn">Buy Now</button>
+                            <button class="icon-btn" id="detailWishlistBtn" title="Add to Wishlist" style="width: 100%; height: 52px; border-radius: var(--radius-sm); font-size: 1.3rem;">♥</button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- RELATED TIMEPIECES -->
+            <div style="margin-top: 90px;">
+                <div class="section-header">
+                    <span class="section-subtitle">RECOMMENDED FOR YOU</span>
+                    <h2 class="section-title">RELATED <span class="gold-text">TIMEPIECES</span></h2>
+                </div>
+                <div class="products-grid" id="relatedWatchesGrid"></div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        ✉️ support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">✕</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody"></div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="products.js"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    <script src="shop.js"></script>
+    <script src="product.js"></script>
+    <script src="cart.js"></script>
+    <script src="animations.js"></script>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product & Stock Management | SONY STORE Admin</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .stock-tab-btn {
+            padding: 8px 18px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--admin-border-subtle);
+            color: var(--text-muted);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        .stock-tab-btn.active {
+            background: var(--gold-primary);
+            color: #000;
+            font-weight: 700;
+            border-color: var(--gold-primary);
+        }
+        .form-section-header {
+            font-family: var(--font-heading);
+            color: var(--gold-light);
+            font-size: 0.95rem;
+            margin: 20px 0 12px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--admin-border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .image-preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            background: #000;
+        }
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .image-preview-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(239, 68, 68, 0.9);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">S</div>
+            <div class="sidebar-logo-text">
+                <div style="font-family: var(--font-heading); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">SONY STORE</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">ADMIN PANEL</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">📊 <span>Dashboard</span></a>
+            <a href="orders.html" class="sidebar-link">📦 <span>Orders</span></a>
+            <a href="products.html" class="sidebar-link active">⌚ <span>Products</span></a>
+            <a href="stock.html" class="sidebar-link">📉 <span>Stock</span></a>
+            <a href="customers.html" class="sidebar-link">👥 <span>Customers</span></a>
+            <a href="settings.html" class="sidebar-link">⚙️ <span>Settings</span></a>
+            <a href="../index.html" class="sidebar-link" target="_blank">🌐 <span>View Store</span></a>
+        </nav>
+
+        <div style="padding: 16px; border-top: 1px solid var(--admin-border-subtle);">
+            <button onclick="logoutAdmin()" class="btn-admin btn-admin-danger" style="width: 100%; font-size: 0.8rem; justify-content: center;">
+                🚪 Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-main">
+        
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <button class="mobile-admin-toggle" id="adminMobileToggle">☰</button>
+                <h2 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">PRODUCT & STOCK MANAGEMENT</h2>
+            </div>
+
+            <div class="admin-header-actions">
+                <button onclick="openAddProductModal()" class="btn-admin" style="font-weight: 700;">+ ADD NEW PRODUCT</button>
+
+                <div class="notif-wrapper">
+                    <button class="notif-btn" id="adminNotifBtn" title="Notifications">
+                        🔔
+                        <span class="notif-badge" id="adminNotifBadge" style="display: none;">0</span>
+                    </button>
+                    <div class="notif-dropdown" id="adminNotifDropdown"></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            
+            <!-- CONTROLS & STOCK FILTER TABS -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <input type="text" id="prodSearchInput" class="admin-input" placeholder="Search by product name, brand, category, SKU..." style="flex: 1; min-width: 250px; max-width: 400px;">
+                
+                <div style="display: flex; gap: 8px;">
+                    <button class="stock-tab-btn active" onclick="filterStockTab('all', this)">All Products</button>
+                    <button class="stock-tab-btn" onclick="filterStockTab('in-stock', this)">🟢 In Stock</button>
+                    <button class="stock-tab-btn" onclick="filterStockTab('low-stock', this)">🟠 Low Stock</button>
+                    <button class="stock-tab-btn" onclick="filterStockTab('out-of-stock', this)">🔴 Out of Stock</button>
+                </div>
+            </div>
+
+            <!-- PRODUCTS TABLE -->
+            <div class="admin-table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>IMAGE</th>
+                            <th>NAME & BRAND</th>
+                            <th>CATEGORY</th>
+                            <th>PRICE</th>
+                            <th>STOCK & THRESHOLD</th>
+                            <th>FEATURED / ACTIVE</th>
+                            <th>SKU</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTbody">
+                        <!-- Populated dynamically via js/products.js -->
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- COMPREHENSIVE ADD / EDIT PRODUCT MODAL -->
+    <div id="productModal" class="admin-modal-backdrop" style="display: none;">
+        <div class="admin-modal" style="max-width: 780px; max-height: 90vh; overflow-y: auto;">
+            <button onclick="closeProductModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">✕</button>
+            <h3 style="font-family: var(--font-heading); color: var(--gold-light); margin-bottom: 6px;" id="modalFormTitle">ADD NEW PRODUCT</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">Fill out product specs, inventory, and upload images to display on the SONY STORE website.</p>
+            
+            <form id="productForm">
+                <input type="hidden" id="prodIdInput">
+                
+                <!-- SECTION 1: PRODUCT INFORMATION -->
+                <div class="form-section-header">📌 PRODUCT INFORMATION</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Product Name *</label>
+                        <input type="text" id="prodName" class="admin-input" style="width: 100%;" placeholder="e.g. SONY Master Automatic Gold" required>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Brand Name *</label>
+                        <input type="text" id="prodBrand" class="admin-input" style="width: 100%;" value="SONY STORE Luxury" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Category *</label>
+                        <select id="prodCategory" class="admin-select" style="width: 100%;">
+                            <option value="Luxury">Luxury Collection</option>
+                            <option value="Classic">Classic Series</option>
+                            <option value="Sport">Sport & Racing</option>
+                            <option value="Minimal">Minimalist Series</option>
+                            <option value="Automatic">Automatic</option>
+                            <option value="Chronograph">Chronograph</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Price ($) *</label>
+                        <input type="number" id="prodPrice" step="0.01" class="admin-input" style="width: 100%;" placeholder="199.00" required>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Sale / Reg Price ($)</label>
+                        <input type="number" id="prodSalePrice" step="0.01" class="admin-input" style="width: 100%;" placeholder="249.00">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">SKU Code</label>
+                        <input type="text" id="prodSku" class="admin-input" style="width: 100%;" placeholder="SNY-PRD-1001">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Initial Stock *</label>
+                        <input type="number" id="prodStock" class="admin-input" style="width: 100%;" placeholder="25" required>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Low Stock Threshold</label>
+                        <input type="number" id="prodLowStockThreshold" class="admin-input" style="width: 100%;" value="5">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Featured Product</label>
+                        <select id="prodFeatured" class="admin-select" style="width: 100%;">
+                            <option value="true">Yes — Feature on Homepage</option>
+                            <option value="false">No — Standard Catalog</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Product Status</label>
+                        <select id="prodActive" class="admin-select" style="width: 100%;">
+                            <option value="true">Active (Visible to Customers)</option>
+                            <option value="false">Inactive (Hidden from Store)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.8rem; color: var(--gold-light);">Product Description</label>
+                    <textarea id="prodDesc" class="admin-input" style="width: 100%; height: 75px;" placeholder="Precision crafted luxury timepiece featuring Swiss movement, sapphire crystal..."></textarea>
+                </div>
+
+                <!-- SECTION 2: PRODUCT SPECIFICATIONS & DETAILS -->
+                <div class="form-section-header">⌚ WATCH SPECIFICATIONS & DETAILS</div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Watch Type</label>
+                        <select id="prodWatchType" class="admin-select" style="width: 100%;">
+                            <option value="automatic">Automatic</option>
+                            <option value="chronograph">Chronograph</option>
+                            <option value="quartz">Quartz</option>
+                            <option value="manual">Manual Wind</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Movement</label>
+                        <input type="text" id="prodMovement" class="admin-input" style="width: 100%;" placeholder="Calibre S-8000 Automatic">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Case Material</label>
+                        <input type="text" id="prodMaterial" class="admin-input" style="width: 100%;" placeholder="18k Solid Gold / Titanium">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Strap Material</label>
+                        <input type="text" id="prodStrap" class="admin-input" style="width: 100%;" placeholder="Italian Alligator Leather">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Case Size</label>
+                        <input type="text" id="prodCase" class="admin-input" style="width: 100%;" placeholder="42mm Diameter">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Dial Color</label>
+                        <input type="text" id="prodDialColor" class="admin-input" style="width: 100%;" placeholder="Sunburst Onyx / Gold">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Water Resistance</label>
+                        <input type="text" id="prodWater" class="admin-input" style="width: 100%;" placeholder="100m / 10 ATM">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Warranty</label>
+                        <input type="text" id="prodWarranty" class="admin-input" style="width: 100%;" value="5 Years International Warranty">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Gender</label>
+                        <select id="prodGender" class="admin-select" style="width: 100%;">
+                            <option value="Unisex">Unisex</option>
+                            <option value="Men">Men</option>
+                            <option value="Women">Women</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: IMAGE UPLOAD & PREVIEW -->
+                <div class="form-section-header">🖼️ PRODUCT IMAGES & UPLOAD</div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.8rem; color: var(--gold-light);">Select Images from Computer</label>
+                    <input type="file" id="prodImageFileInput" accept="image/*" multiple class="admin-input" style="width: 100%; padding: 8px;" onchange="handleImageFileSelect(event)">
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Selected images will be previewed below and saved to the product catalog.</p>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.8rem; color: var(--gold-light);">Or Enter External Image URL / SVG</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="prodImageUrlInput" class="admin-input" style="flex: 1;" placeholder="https://example.com/watch.jpg or data:image/svg+xml...">
+                        <button type="button" onclick="addUrlImageToPreview()" class="btn-admin" style="padding: 6px 14px; font-size: 0.8rem;">Add URL</button>
+                    </div>
+                </div>
+
+                <!-- IMAGE PREVIEW CONTAINER -->
+                <div style="margin-bottom: 24px;">
+                    <label style="font-size: 0.8rem; color: var(--gold-light); display: block; margin-bottom: 6px;">Image Previews & Gallery</label>
+                    <div id="imagePreviewContainer" style="display: flex; flex-wrap: wrap; gap: 10px; min-height: 80px; padding: 10px; border: 1px dashed var(--border-gold); border-radius: 8px; background: rgba(0,0,0,0.3);">
+                        <!-- Dynamic Thumbnail Previews -->
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-admin" style="width: 100%; padding: 14px; justify-content: center; font-size: 1rem; font-weight: 700;">💾 SAVE PRODUCT TO SONY STORE →</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRODUCT DETAIL VIEW MODAL -->
+    <div id="productDetailModal" class="admin-modal-backdrop" style="display: none;">
+        <div class="admin-modal" style="max-width: 600px;">
+            <button onclick="document.getElementById('productDetailModal').style.display = 'none'" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">✕</button>
+            <h3 style="font-family: var(--font-heading); color: var(--gold-light); margin-bottom: 16px;" id="detailModalTitle">PRODUCT DETAILS</h3>
+            <div id="detailModalBody"></div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../products.js"></script>
+    <script src="../supabase.js"></script>
+    <script src="admin.js"></script>
+    <script src="products.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('action') === 'add') {
+                openAddProductModal();
+            }
+            if (urlParams.get('tab') === 'stock') {
+                filterStockTab('low-stock', document.querySelectorAll('.stock-tab-btn')[2]);
+            }
+        });
+    </script>
+</body>
+</html>

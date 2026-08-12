@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | SONY STORE</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">S</div>
+            <div class="sidebar-logo-text">
+                <div style="font-family: var(--font-heading); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">SONY STORE</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">ADMIN PANEL</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link active">📊 <span>Dashboard</span></a>
+            <a href="orders.html" class="sidebar-link">📦 <span>Orders</span></a>
+            <a href="products.html" class="sidebar-link">⌚ <span>Products</span></a>
+            <a href="products.html?tab=stock" class="sidebar-link">📉 <span>Stock</span></a>
+            <a href="customers.html" class="sidebar-link">👥 <span>Customers</span></a>
+            <a href="settings.html" class="sidebar-link">⚙️ <span>Settings</span></a>
+            <a href="../index.html" class="sidebar-link" target="_blank">🌐 <span>View Store</span></a>
+        </nav>
+
+        <div style="padding: 16px; border-top: 1px solid var(--admin-border-subtle);">
+            <button onclick="logoutAdmin()" class="btn-admin btn-admin-danger" style="width: 100%; font-size: 0.8rem; justify-content: center;">
+                🚪 Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <div class="admin-main">
+        
+        <!-- TOP BAR -->
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <button class="mobile-admin-toggle" id="adminMobileToggle">☰</button>
+                <h2 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">SONY STORE DASHBOARD</h2>
+            </div>
+
+            <div class="admin-header-actions">
+                <a href="products.html?action=add" class="btn-admin" style="font-weight: 700;">+ ADD NEW PRODUCT</a>
+                <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminCurrentDate">Today</div>
+                
+                <!-- NOTIFICATIONS BELL -->
+                <div class="notif-wrapper">
+                    <button class="notif-btn" id="adminNotifBtn" title="Notifications">
+                        🔔
+                        <span class="notif-badge" id="adminNotifBadge" style="display: none;">0</span>
+                    </button>
+                    <div class="notif-dropdown" id="adminNotifDropdown">
+                        <!-- Populated dynamically via admin.js -->
+                    </div>
+                </div>
+
+                <div style="font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
+                    👤 Admin Concierge
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            
+            <!-- 6 DASHBOARD KPI CARDS -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Sales Revenue</div>
+                    <div class="kpi-value" id="kpiTotalSales">$0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Orders</div>
+                    <div class="kpi-value" id="kpiTotalOrders">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Pending Orders</div>
+                    <div class="kpi-value" id="kpiPendingOrders" style="color: #f59e0b;">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Customers</div>
+                    <div class="kpi-value" id="kpiTotalCustomers">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Products</div>
+                    <div class="kpi-value" id="kpiTotalProducts">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Low Stock Items</div>
+                    <div class="kpi-value" id="kpiLowStock" style="color: #ef4444;">0</div>
+                </div>
+            </div>
+
+            <!-- SALES OVERVIEW CHART -->
+            <div class="chart-container-panel">
+                <div class="chart-header">
+                    <div>
+                        <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">SALES OVERVIEW</h3>
+                        <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Real-time revenue metrics analytics</p>
+                    </div>
+
+                    <div class="chart-btn-group">
+                        <button class="chart-tab-btn" onclick="switchChartRange('today', this)">Today</button>
+                        <button class="chart-tab-btn active" onclick="switchChartRange('week', this)">This Week</button>
+                        <button class="chart-tab-btn" onclick="switchChartRange('month', this)">This Month</button>
+                    </div>
+                </div>
+
+                <div id="salesChartBox">
+                    <!-- SVG Chart rendered via js/admin.js -->
+                </div>
+            </div>
+
+            <!-- RECENT ORDERS -->
+            <div class="admin-table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">RECENT ORDERS</h3>
+                    <a href="orders.html" class="btn-admin" style="padding: 8px 16px; font-size: 0.8rem;">View All Orders →</a>
+                </div>
+
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ORDER ID</th>
+                            <th>CUSTOMER</th>
+                            <th>PHONE</th>
+                            <th>ITEMS</th>
+                            <th>TOTAL</th>
+                            <th>PAYMENT</th>
+                            <th>STATUS</th>
+                            <th>DATE</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardOrdersTbody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ORDER DETAIL MODAL -->
+    <div id="orderDetailModal" class="admin-modal-backdrop">
+        <div class="admin-modal">
+            <button onclick="document.getElementById('orderDetailModal').style.display = 'none'" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">✕</button>
+            <h3 style="font-family: var(--font-heading); color: var(--gold-light); margin-bottom: 16px;" id="modalOrderTitle">ORDER DETAILS</h3>
+            <div id="modalOrderBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/orders.js"></script>
+    <script>
+        function switchChartRange(range, btn) {
+            document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderSalesOverviewChart(range);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const orders = JSON.parse(localStorage.getItem('sony_store_orders')) || [];
+            const productsList = JSON.parse(localStorage.getItem('sony_store_products')) || [];
+            const settings = getStoreSettings();
+
+            const pendingCount = orders.filter(o => o.status === 'Pending').length;
+            const totalRevenue = orders.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + (o.total || 0), 0);
+            const lowStockCount = productsList.filter(p => (p.stock || 0) <= settings.lowStockThreshold).length;
+
+            const custPhones = new Set();
+            orders.forEach(o => { if (o.customer && o.customer.phone) custPhones.add(o.customer.phone); });
+
+            // Animated Counters
+            animateCounter('kpiTotalSales', totalRevenue, true);
+            animateCounter('kpiTotalOrders', orders.length);
+            animateCounter('kpiPendingOrders', pendingCount);
+            animateCounter('kpiTotalCustomers', custPhones.size);
+            animateCounter('kpiTotalProducts', productsList.length);
+            animateCounter('kpiLowStock', lowStockCount);
+
+            // Render Sales Chart
+            renderSalesOverviewChart('week');
+
+            // Render Recent Orders Table
+            const tbody = document.getElementById('dashboardOrdersTbody');
+            if (orders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">No orders placed yet.</td></tr>`;
+            } else {
+                tbody.innerHTML = orders.slice(0, 6).map(o => `
+                    <tr>
+                        <td style="font-weight: 700; color: var(--gold-light);">${o.id}</td>
+                        <td>${o.customer ? o.customer.name : 'Client'}</td>
+                        <td>${o.customer ? o.customer.phone : '-'}</td>
+                        <td>${o.items ? o.items.length : 0} items</td>
+                        <td style="font-weight: 700; color: #fff;">$${o.total.toLocaleString()}</td>
+                        <td>${o.paymentMethod || 'Cash on Delivery'}</td>
+                        <td><span class="badge-status badge-${(o.status || 'Pending').toLowerCase()}">${o.status}</span></td>
+                        <td>${new Date(o.date).toLocaleDateString()}</td>
+                        <td>
+                            <button onclick="inspectOrderDetails('${o.id}')" class="btn-admin" style="padding: 4px 10px; font-size: 0.75rem;">VIEW</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Management | SONY STORE Admin</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">S</div>
+            <div class="sidebar-logo-text">
+                <div style="font-family: var(--font-heading); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">SONY STORE</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">ADMIN PANEL</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">📊 <span>Dashboard</span></a>
+            <a href="orders.html" class="sidebar-link">📦 <span>Orders</span></a>
+            <a href="products.html" class="sidebar-link">⌚ <span>Products</span></a>
+            <a href="stock.html" class="sidebar-link active">📉 <span>Stock Management</span></a>
+            <a href="customers.html" class="sidebar-link">👥 <span>Customers</span></a>
+            <a href="settings.html" class="sidebar-link">⚙️ <span>Settings</span></a>
+            <a href="../index.html" class="sidebar-link" target="_blank">🌐 <span>View Store</span></a>
+        </nav>
+
+        <div style="padding: 16px; border-top: 1px solid var(--admin-border-subtle);">
+            <button onclick="logoutAdmin()" class="btn-admin btn-admin-danger" style="width: 100%; font-size: 0.8rem; justify-content: center;">
+                🚪 Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-main">
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <button class="mobile-admin-toggle" id="adminMobileToggle">☰</button>
+                <h2 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">STOCK MANAGEMENT</h2>
+            </div>
+            <div class="admin-header-actions">
+                <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminCurrentDate">Today</div>
+                <div style="font-size: 0.85rem; color: var(--text-main); font-weight: 600;">👤 Admin Concierge</div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            <!-- LOW STOCK ALERT BANNER -->
+            <div id="lowStockBanner" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; padding: 14px 18px; border-radius: 10px; margin-bottom: 24px;">
+                ⚠️ <strong id="lowStockCountText">0 items</strong> are currently below low-stock threshold (5 units). Please update inventory levels promptly.
+            </div>
+
+            <!-- STOCK SUMMARY CARDS -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Product Models</div>
+                    <div class="kpi-value" id="stockTotalModels">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Stock Units</div>
+                    <div class="kpi-value" id="stockTotalUnits">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Low Stock Alert (<5)</div>
+                    <div class="kpi-value" id="stockLowAlert" style="color: #ef4444;">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Out of Stock (0)</div>
+                    <div class="kpi-value" id="stockOutOfStock" style="color: #f59e0b;">0</div>
+                </div>
+            </div>
+
+            <!-- STOCK INVENTORY TABLE -->
+            <div class="admin-table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
+                    <div>
+                        <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">INVENTORY LEVELS</h3>
+                        <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Manage product availability and stock quantities</p>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="stockSearchInput" placeholder="Search product model..." class="admin-input" style="width: 220px; padding: 8px 14px; font-size: 0.85rem;" onkeyup="filterStockTable()">
+                        <select id="stockFilterSelect" class="admin-select" style="padding: 8px 14px; font-size: 0.85rem;" onchange="filterStockTable()">
+                            <option value="all">All Inventory Status</option>
+                            <option value="low">Low Stock (< 5)</option>
+                            <option value="out">Out of Stock (0)</option>
+                            <option value="in">In Stock (5+)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>MODEL</th>
+                            <th>CATEGORY</th>
+                            <th>PRICE</th>
+                            <th>CURRENT STOCK</th>
+                            <th>STATUS</th>
+                            <th>QUICK ADJUSTMENT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../products.js"></script>
+    <script src="../supabase.js"></script>
+    <script src="admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireAdminAuth()) return;
+            renderStockInventory();
+        });
+
+        function renderStockInventory() {
+            const products = getProductsData();
+            const tbody = document.getElementById('stockTableBody');
+            if (!tbody) return;
+
+            let totalUnits = 0;
+            let lowCount = 0;
+            let outCount = 0;
+
+            tbody.innerHTML = '';
+
+            products.forEach(p => {
+                const stock = parseInt(p.stock || 0);
+                totalUnits += stock;
+                if (stock === 0) outCount++;
+                else if (stock < 5) lowCount++;
+
+                let statusBadge = '<span class="status-badge badge-success">In Stock</span>';
+                if (stock === 0) {
+                    statusBadge = '<span class="status-badge badge-danger">Out of Stock</span>';
+                } else if (stock < 5) {
+                    statusBadge = '<span class="status-badge badge-warning">Low Stock</span>';
+                }
+
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-title', p.name.toLowerCase());
+                tr.setAttribute('data-category', p.category.toLowerCase());
+                tr.setAttribute('data-stock', stock);
+
+                tr.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${p.image}" style="width: 40px; height: 40px; object-fit: contain; background: #000; border-radius: 6px; border: 1px solid var(--admin-border-subtle);">
+                            <div>
+                                <div style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;">${p.name}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Ref: SNY-${p.id.toString().padStart(4, '0')}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">${p.category}</td>
+                    <td style="color: var(--gold-light); font-weight: 700;">$${p.price.toLocaleString()}</td>
+                    <td>
+                        <span style="font-family: var(--font-heading); font-size: 1.1rem; font-weight: 800; color: ${stock < 5 ? '#ef4444' : '#10b981'};">${stock}</span> units
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <button onclick="adjustStock(${p.id}, -1)" class="btn-admin" style="padding: 4px 10px; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">-1</button>
+                            <button onclick="adjustStock(${p.id}, 1)" class="btn-admin" style="padding: 4px 10px; font-size: 0.8rem; background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">+1</button>
+                            <button onclick="adjustStock(${p.id}, 5)" class="btn-admin" style="padding: 4px 10px; font-size: 0.8rem; background: rgba(212, 175, 55, 0.2); color: var(--gold-light); border-color: var(--border-gold);">+5</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('stockTotalModels').textContent = products.length;
+            document.getElementById('stockTotalUnits').textContent = totalUnits;
+            document.getElementById('stockLowAlert').textContent = lowCount;
+            document.getElementById('stockOutOfStock').textContent = outCount;
+
+            const lowBanner = document.getElementById('lowStockBanner');
+            if (lowCount > 0 || outCount > 0) {
+                lowBanner.style.display = 'block';
+                document.getElementById('lowStockCountText').textContent = `${lowCount + outCount} product models`;
+            } else {
+                lowBanner.style.display = 'none';
+            }
+        }
+
+        async function adjustStock(productId, delta) {
+            let products = getProductsData();
+            const idx = products.findIndex(p => p.id === productId);
+            if (idx === -1) return;
+
+            let newStock = Math.max(0, parseInt(products[idx].stock || 0) + delta);
+            products[idx].stock = newStock;
+            saveProductsData(products);
+
+            // Sync with Supabase
+            if (window.supabaseClient) {
+                try {
+                    await window.supabaseClient.from('products').update({ stock: newStock }).eq('id', productId);
+                } catch (e) {
+                    console.warn('Supabase stock update fallback:', e.message);
+                }
+            }
+
+            renderStockInventory();
+        }
+
+        function filterStockTable() {
+            const query = document.getElementById('stockSearchInput').value.toLowerCase();
+            const filter = document.getElementById('stockFilterSelect').value;
+            const rows = document.querySelectorAll('#stockTableBody tr');
+
+            rows.forEach(r => {
+                const title = r.getAttribute('data-title') || '';
+                const category = r.getAttribute('data-category') || '';
+                const stock = parseInt(r.getAttribute('data-stock') || 0);
+
+                const matchesQuery = title.includes(query) || category.includes(query);
+                let matchesFilter = true;
+
+                if (filter === 'low') matchesFilter = (stock > 0 && stock < 5);
+                else if (filter === 'out') matchesFilter = (stock === 0);
+                else if (filter === 'in') matchesFilter = (stock >= 5);
+
+                if (matchesQuery && matchesFilter) {
+                    r.style.display = '';
+                } else {
+                    r.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

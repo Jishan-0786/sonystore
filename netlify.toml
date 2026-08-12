@@ -1,0 +1,37 @@
+# ==========================================================================
+# SONY STORE - NETLIFY DEPLOYMENT CONFIGURATION
+# Configures the publish root directory & admin redirects for Netlify.
+# ==========================================================================
+
+[build]
+  publish = "."
+
+# Netlify Redirects for Admin Panel
+[[redirects]]
+  from = "/admin"
+  to = "/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/"
+  to = "/admin/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Content-Type = "text/css; charset=UTF-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Content-Type = "application/javascript; charset=UTF-8"
+    Cache-Control = "public, max-age=31536000, immutable"

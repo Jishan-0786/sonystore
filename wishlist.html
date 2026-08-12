@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MY WISHLIST | SONY STORE</title>
+    <meta name="description" content="Your favorite timepieces, saved in one place. Access your personal luxury watch wishlist at SONY STORE.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="responsive.css">
+</head>
+<body>
+
+    <!-- SITE HEADER -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link active">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="wishlist.html" class="icon-btn active" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- WISHLIST HERO BANNER -->
+    <section class="shop-banner" style="padding-bottom: 40px;">
+        <div class="container reveal">
+            <span class="section-subtitle">SAVED TIMEPIECES</span>
+            <h1 class="section-title watch-collection-heading">MY <span class="gold-text">WISHLIST</span></h1>
+            <p class="watch-collection-subtitle">
+                Your favorite timepieces, saved in one place.
+            </p>
+            <div class="watch-collection-divider"></div>
+        </div>
+    </section>
+
+    <!-- MAIN WISHLIST CONTENT -->
+    <section class="section" style="padding-top: 30px;">
+        <div class="container">
+            
+            <!-- Item Counter & Clear Actions Bar -->
+            <div id="wishlistHeaderRow" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <span id="wishlistProductCount" style="color: var(--gold-primary); font-weight: 700; font-size: 0.9rem; letter-spacing: 1px;">
+                    Loading Saved Timepieces...
+                </span>
+                <button id="clearWishlistBtn" onclick="clearWishlist()" style="background: none; border: none; color: var(--text-dim); text-decoration: underline; cursor: pointer; font-size: 0.85rem;">Clear Entire Wishlist</button>
+            </div>
+
+            <!-- DYNAMIC WISHLIST PRODUCTS GRID -->
+            <div class="products-grid" id="wishlistProductsGrid">
+                <!-- Dynamically rendered via js/wishlist.js -->
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="wishlist.html">My Wishlist</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        ✉️ support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">✕</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody"></div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="products.js"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    <script src="shop.js"></script>
+    <script src="cart.js"></script>
+    <script src="wishlist.js"></script>
+    <script src="animations.js"></script>
+</body>
+</html>
