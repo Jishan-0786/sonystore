@@ -1,6 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Supports Supabase Auth (Google OAuth, Email/Password, Phone OTP)
+ * Uses existing Supabase client from supabase.js.
  * Automatically synchronizes Supabase sessions & OAuth profiles with local customer portal state.
  */
 
@@ -52,35 +53,72 @@ function requireCustomerAuth(redirectUrl) {
     return true;
 }
 
-// Google OAuth Integration
+// Google OAuth Integration using existing Supabase client
 async function signInWithGoogle() {
-    if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
-        try {
-            const redirectUrl = `${window.location.origin}/account.html`;
-            const { data, error } = await getSupabaseClient().auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: redirectUrl
-                }
-            });
-            if (error) throw error;
-        } catch (err) {
-            console.error('Google Auth Error:', err.message);
-            alert('Google Auth Error: ' + err.message + '\n\nPlease ensure Google Provider is enabled in your Supabase Project Dashboard under Authentication -> Providers.');
+    const btn = document.getElementById('googleAuthBtn');
+    const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
+    const originalText = btnText ? btnText.textContent : 'Continue with Google';
+
+    // Set button loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.style.cursor = 'wait';
+    }
+    if (btnText) {
+        btnText.textContent = 'Redirecting to Google...';
+    }
+
+    try {
+        const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+        
+        if (!client) {
+            const err = new Error('Supabase client not initialized. Ensure supabase.js is loaded.');
+            console.error('Supabase Client Error:', err);
+            throw err;
         }
-    } else {
-        // Fallback demo Google sign-in when Supabase OAuth client is offline
-        setLoggedInUser({
-            id: 'demo-google-user-101',
-            email: 'vip.client@gmail.com',
-            name: 'VIP Google Client',
-            phone: '+977 9811112222',
-            provider: 'google'
+
+        const redirectTarget = (window.location.hostname === 'sonywatchstore.netlify.app' || window.location.hostname.endsWith('netlify.app'))
+            ? 'https://sonywatchstore.netlify.app/account.html'
+            : `${window.location.origin}/account.html`;
+
+        console.log('Initiating Supabase Google OAuth with redirectTo:', redirectTarget);
+
+        const { data, error } = await client.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectTarget
+            }
         });
-        if (typeof showToast === 'function') showToast('Signed in with Google (Demo)', '🔑');
-        setTimeout(() => {
-            window.location.href = 'account.html';
-        }, 500);
+
+        console.log('Supabase OAuth Data Result:', data);
+
+        if (error) {
+            console.error('Supabase Google OAuth Error:', error);
+            throw error;
+        }
+
+        // If OAuth URL is returned, trigger browser redirect immediately
+        if (data && data.url) {
+            console.log('Redirecting browser to Google login URL:', data.url);
+            window.location.href = data.url;
+        }
+
+    } catch (err) {
+        console.error('Exact signInWithGoogle Failure:', err);
+
+        // Reset button loading state on error
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
+        if (btnText) {
+            btnText.textContent = originalText;
+        }
+
+        const errMessage = err ? (err.message || String(err)) : 'Unknown OAuth error';
+        alert('Google OAuth Error: ' + errMessage + '\n\nPlease check browser console for full details.');
     }
 }
 
@@ -161,29 +199,41 @@ function updateAuthUI() {
 document.addEventListener('DOMContentLoaded', () => {
     updateAuthUI();
 
+    // Attach Google OAuth click listener
+    const googleBtn = document.getElementById('googleAuthBtn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            signInWithGoogle();
+        });
+    }
+
     // Listen for Supabase session changes & Google OAuth callbacks
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
-            getSupabaseClient().auth.onAuthStateChange(async (event, session) => {
-                if (session && session.user) {
-                    const user = session.user;
-                    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Valued Client';
-                    const userPhone = user.user_metadata?.phone || '+977 9800000000';
-                    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+            const client = getSupabaseClient();
+            if (client && client.auth) {
+                client.auth.onAuthStateChange(async (event, session) => {
+                    console.log('Supabase Auth Event:', event, session);
 
-                    setLoggedInUser({
-                        id: user.id,
-                        email: user.email,
-                        phone: userPhone,
-                        name: userName,
-                        avatar: avatarUrl,
-                        provider: user.app_metadata?.provider || 'google'
-                    });
+                    if (session && session.user) {
+                        const user = session.user;
+                        const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Valued Client';
+                        const userPhone = user.user_metadata?.phone || '+977 9800000000';
+                        const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
 
-                    // Create / Update user profile in Supabase profiles table
-                    if (window.supabaseClient) {
+                        setLoggedInUser({
+                            id: user.id,
+                            email: user.email,
+                            phone: userPhone,
+                            name: userName,
+                            avatar: avatarUrl,
+                            provider: user.app_metadata?.provider || 'google'
+                        });
+
+                        // Create / Update user profile in Supabase profiles table
                         try {
-                            await window.supabaseClient.from('profiles').upsert([{
+                            await client.from('profiles').upsert([{
                                 id: user.id,
                                 email: user.email,
                                 full_name: userName,
@@ -192,16 +242,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                 updated_at: new Date().toISOString()
                             }], { onConflict: 'id' });
                         } catch (e) {
-                            console.warn('Profile sync exception:', e.message);
+                            console.warn('Profile sync notice:', e.message || e);
+                        }
+
+                        // Auto redirect to account.html if user is currently on login.html
+                        if (window.location.pathname.endsWith('login.html')) {
+                            const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+                            window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
                         }
                     }
-
-                    // Auto redirect to account.html if user is currently on login.html
-                    if (window.location.pathname.endsWith('login.html')) {
-                        window.location.href = 'account.html';
-                    }
-                }
-            });
-        } catch (e) {}
+                });
+            }
+        } catch (e) {
+            console.warn('Auth state change error:', e);
+        }
     }
 });
