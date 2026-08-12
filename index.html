@@ -3,216 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | SONY STORE</title>
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="admin.css">
-    <link rel="stylesheet" href="css/admin.css">
+    <title>SONY STORE | Luxury Watchmaker</title>
+    <meta name="description" content="SONY STORE presents. Precision crafted luxury watches built with Swiss movements, sapphire crystals, and solid 18k gold.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="responsive.css">
 </head>
 <body>
 
-    <!-- SIDEBAR -->
-    <aside class="admin-sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">S</div>
-            <div class="sidebar-logo-text">
-                <div style="font-family: var(--font-heading); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">SONY STORE</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">ADMIN PANEL</div>
-            </div>
-        </div>
-
-        <nav class="sidebar-nav">
-            <a href="index.html" class="sidebar-link active">📊 <span>Dashboard</span></a>
-            <a href="orders.html" class="sidebar-link">📦 <span>Orders</span></a>
-            <a href="products.html" class="sidebar-link">⌚ <span>Products</span></a>
-            <a href="products.html?tab=stock" class="sidebar-link">📉 <span>Stock</span></a>
-            <a href="customers.html" class="sidebar-link">👥 <span>Customers</span></a>
-            <a href="settings.html" class="sidebar-link">⚙️ <span>Settings</span></a>
-            <a href="../index.html" class="sidebar-link" target="_blank">🌐 <span>View Store</span></a>
-        </nav>
-
-        <div style="padding: 16px; border-top: 1px solid var(--admin-border-subtle);">
-            <button onclick="logoutAdmin()" class="btn-admin btn-admin-danger" style="width: 100%; font-size: 0.8rem; justify-content: center;">
-                🚪 Logout
-            </button>
-        </div>
-    </aside>
-
-    <!-- MAIN DASHBOARD CONTENT -->
-    <div class="admin-main">
-        
-        <!-- TOP BAR -->
-        <header class="admin-header">
-            <div style="display: flex; align-items: center; gap: 14px;">
-                <button class="mobile-admin-toggle" id="adminMobileToggle">☰</button>
-                <h2 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">SONY STORE DASHBOARD</h2>
-            </div>
-
-            <div class="admin-header-actions">
-                <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminCurrentDate">Today</div>
-                
-                <!-- NOTIFICATIONS BELL -->
-                <div class="notif-wrapper">
-                    <button class="notif-btn" id="adminNotifBtn" title="Notifications">
-                        🔔
-                        <span class="notif-badge" id="adminNotifBadge" style="display: none;">0</span>
-                    </button>
-                    <div class="notif-dropdown" id="adminNotifDropdown">
-                        <!-- Populated dynamically via admin.js -->
-                    </div>
-                </div>
-
-                <div style="font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
-                    👤 Admin Concierge
-                </div>
-            </div>
-        </header>
-
-        <main class="admin-content">
-            
-            <!-- 6 DASHBOARD KPI CARDS -->
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="kpi-title">Total Sales Revenue</div>
-                    <div class="kpi-value" id="kpiTotalSales">$0</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Total Orders</div>
-                    <div class="kpi-value" id="kpiTotalOrders">0</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Pending Orders</div>
-                    <div class="kpi-value" id="kpiPendingOrders" style="color: #f59e0b;">0</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Total Customers</div>
-                    <div class="kpi-value" id="kpiTotalCustomers">0</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Total Products</div>
-                    <div class="kpi-value" id="kpiTotalProducts">0</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Low Stock Items</div>
-                    <div class="kpi-value" id="kpiLowStock" style="color: #ef4444;">0</div>
-                </div>
-            </div>
-
-            <!-- SALES OVERVIEW CHART -->
-            <div class="chart-container-panel">
-                <div class="chart-header">
+    <!-- SITE HEADER & NAVIGATION -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Brand Logo -->
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
                     <div>
-                        <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">SALES OVERVIEW</h3>
-                        <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Real-time revenue metrics analytics</p>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
                     </div>
+                </a>
 
-                    <div class="chart-btn-group">
-                        <button class="chart-tab-btn" onclick="switchChartRange('today', this)">Today</button>
-                        <button class="chart-tab-btn active" onclick="switchChartRange('week', this)">This Week</button>
-                        <button class="chart-tab-btn" onclick="switchChartRange('month', this)">This Month</button>
-                    </div>
-                </div>
+                <!-- Navigation Links -->
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link active">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
 
-                <div id="salesChartBox">
-                    <!-- SVG Chart rendered via js/admin.js -->
+                <!-- Header Actions -->
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">
+                        🔍
+                    </a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">
+                        ☰
+                    </button>
                 </div>
             </div>
+        </div>
+    </header>
 
-            <!-- RECENT ORDERS -->
-            <div class="admin-table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">RECENT ORDERS</h3>
-                    <a href="orders.html" class="btn-admin" style="padding: 8px 16px; font-size: 0.8rem;">View All Orders →</a>
+    <!-- HERO SECTION -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-grid">
+                <div class="hero-content reveal">
+                    <div class="hero-tag">✨ SONY STORE EXCLUSIVE SHOWROOM</div>
+                    <h1 class="hero-title">
+                        TIME, <br>
+                        <span class="gold-text">REDEFINED.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Precision crafted for every moment. Experience the pinnacle of Swiss horology, solid gold alloys, and flying tourbillon movements.
+                    </p>
+                    <div class="hero-buttons">
+                        <a href="shop.html" class="btn-primary">Explore Collection →</a>
+                        <a href="shop.html?sort=popularity" class="btn-secondary">View Best Sellers</a>
+                    </div>
                 </div>
+                <div class="hero-visual reveal">
+                    <div class="hero-glow-ring"></div>
+                    <div class="hero-image-wrapper">
+                        <!-- Dynamic SVG hero watch visual render -->
+                        <img id="heroWatchImg" src="" alt="SONY STORE Royal Tourbillon" style="width: 100%; filter: drop-shadow(0 25px 50px rgba(212, 175, 55, 0.3));">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ORDER ID</th>
-                            <th>CUSTOMER</th>
-                            <th>PHONE</th>
-                            <th>ITEMS</th>
-                            <th>TOTAL</th>
-                            <th>PAYMENT</th>
-                            <th>STATUS</th>
-                            <th>DATE</th>
-                            <th>ACTION</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dashboardOrdersTbody">
-                        <!-- Populated dynamically -->
-                    </tbody>
-                </table>
+    <!-- VALUE PROPOSITION BAR -->
+    <section style="background: rgba(18, 20, 30, 0.6); padding: 36px 0; border-top: 1px solid var(--border-gold); border-bottom: 1px solid var(--border-subtle);">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 30px; text-align: center;">
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">⚙</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">Swiss Movement</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">Calibre CH-Series automatic engines</p>
+                </div>
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">💎</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">Sapphire Crystal</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">Unscratchable double anti-reflective glass</p>
+                </div>
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">🛡</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">5-Year Warranty</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">International SONY STORE concierge care</p>
+                </div>
+                <div>
+                    <div style="font-size: 1.8rem; color: var(--gold-primary); margin-bottom: 8px;">✈</div>
+                    <h4 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light);">Insured Delivery</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">Complimentary express worldwide shipping</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURED WATCHES SECTION -->
+    <section class="section">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-subtitle">HAUTE HORLOGERIE</span>
+                <h2 class="section-title">FEATURED <span class="gold-text">TIMEPIECES</span></h2>
             </div>
 
-        </main>
+            <!-- Products Grid populated dynamically -->
+            <div class="products-grid" id="featuredProductsGrid"></div>
 
-    </div>
+            <div style="text-align: center; margin-top: 50px;">
+                <a href="shop.html" class="btn-secondary" style="padding: 14px 40px;">View Full Collection (${products.length} Models)</a>
+            </div>
+        </div>
+    </section>
 
-    <!-- ORDER DETAIL MODAL -->
-    <div id="orderDetailModal" class="admin-modal-backdrop">
-        <div class="admin-modal">
-            <button onclick="document.getElementById('orderDetailModal').style.display = 'none'" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">✕</button>
-            <h3 style="font-family: var(--font-heading); color: var(--gold-light); margin-bottom: 16px;" id="modalOrderTitle">ORDER DETAILS</h3>
-            <div id="modalOrderBody"></div>
+    <!-- CATEGORY HIGHLIGHTS -->
+    <section class="section" style="background: radial-gradient(circle at 30% 50%, rgba(212, 175, 55, 0.05) 0%, transparent 60%);">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-subtitle">CURATED COLLECTIONS</span>
+                <h2 class="section-title">EXPLORE BY <span class="gold-text">CATEGORY</span></h2>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+                <a href="shop.html?category=Luxury" class="glass-panel" style="padding: 40px 30px; display: block; transition: var(--transition-smooth); text-align: center; border-color: var(--border-gold);">
+                    <div style="font-size: 2.5rem; margin-bottom: 16px;">👑</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 8px;">LUXURY & TOURBILLON</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">18k Gold, Diamonds & Grand Complications</p>
+                </a>
+                <a href="shop.html?category=Sport" class="glass-panel" style="padding: 40px 30px; display: block; transition: var(--transition-smooth); text-align: center; border-color: var(--border-gold);">
+                    <div style="font-size: 2.5rem; margin-bottom: 16px;">🏎</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 8px;">SPORT & CHRONOGRAPH</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Grade 5 Titanium, Carbon Fiber & 300m GMT</p>
+                </a>
+                <a href="shop.html?category=Automatic" class="glass-panel" style="padding: 40px 30px; display: block; transition: var(--transition-smooth); text-align: center; border-color: var(--border-gold);">
+                    <div style="font-size: 2.5rem; margin-bottom: 16px;">⏳</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 8px;">AUTOMATIC SKELETON</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Openwork dials displaying mechanical mastery</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIP CONCIERGE NEWSLETTER -->
+    <section class="section" style="padding: 60px 0;">
+        <div class="container">
+            <div class="glass-panel" style="padding: 60px 40px; text-align: center; max-width: 800px; margin: 0 auto; background: linear-gradient(135deg, rgba(18,20,30,0.9) 0%, rgba(9,10,15,0.95) 100%);">
+                <span class="section-subtitle">VIP SHOWROOM MEMBERSHIP</span>
+                <h3 style="font-family: var(--font-heading); font-size: 2rem; margin-bottom: 16px;">RECEIVE PRIVATE INVITATIONS</h3>
+                <p style="color: var(--text-muted); margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    Subscribe to receive early allocation access for limited edition SONY STORE timepieces and horology galas.
+                </p>
+                <form onsubmit="event.preventDefault(); showToast('Welcome to SONY STORE Private Circle', '👑');" style="display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap;">
+                    <input type="email" placeholder="Enter your email address..." required style="flex: 1; min-width: 240px; padding: 14px 20px; border-radius: var(--radius-full); background: rgba(0,0,0,0.5); border: 1px solid var(--border-gold); color: #fff; outline: none;">
+                    <button type="submit" class="btn-primary" style="padding: 14px 30px;">Request Access</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        ✉️ support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">✕</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody">
+                <!-- Dynamic Cart Drawer Content -->
+            </div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
         </div>
     </div>
 
+    <!-- JS SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/products.js"></script>
-    <script src="../js/supabase.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/orders.js"></script>
+    <script src="products.js"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    <script src="shop.js"></script>
+    <script src="cart.js"></script>
+    <script src="animations.js"></script>
     <script>
-        function switchChartRange(range, btn) {
-            document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            renderSalesOverviewChart(range);
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            const orders = JSON.parse(localStorage.getItem('sony_store_orders')) || [];
-            const productsList = JSON.parse(localStorage.getItem('sony_store_products')) || [];
-            const settings = getStoreSettings();
+            // Render Hero Watch SVG
+            const heroWatchImg = document.getElementById('heroWatchImg');
+            if (heroWatchImg && products.length > 0) {
+                heroWatchImg.src = products[0].images[0];
+            }
 
-            const pendingCount = orders.filter(o => o.status === 'Pending').length;
-            const totalRevenue = orders.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + (o.total || 0), 0);
-            const lowStockCount = productsList.filter(p => (p.stock || 0) <= settings.lowStockThreshold).length;
-
-            const custPhones = new Set();
-            orders.forEach(o => { if (o.customer && o.customer.phone) custPhones.add(o.customer.phone); });
-
-            // Animated Counters
-            animateCounter('kpiTotalSales', totalRevenue, true);
-            animateCounter('kpiTotalOrders', orders.length);
-            animateCounter('kpiPendingOrders', pendingCount);
-            animateCounter('kpiTotalCustomers', custPhones.size);
-            animateCounter('kpiTotalProducts', productsList.length);
-            animateCounter('kpiLowStock', lowStockCount);
-
-            // Render Sales Chart
-            renderSalesOverviewChart('week');
-
-            // Render Recent Orders Table
-            const tbody = document.getElementById('dashboardOrdersTbody');
-            if (orders.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">No orders placed yet.</td></tr>`;
-            } else {
-                tbody.innerHTML = orders.slice(0, 6).map(o => `
-                    <tr>
-                        <td style="font-weight: 700; color: var(--gold-light);">${o.id}</td>
-                        <td>${o.customer ? o.customer.name : 'Client'}</td>
-                        <td>${o.customer ? o.customer.phone : '-'}</td>
-                        <td>${o.items ? o.items.length : 0} items</td>
-                        <td style="font-weight: 700; color: #fff;">$${o.total.toLocaleString()}</td>
-                        <td>${o.paymentMethod || 'Cash on Delivery'}</td>
-                        <td><span class="badge-status badge-${(o.status || 'Pending').toLowerCase()}">${o.status}</span></td>
-                        <td>${new Date(o.date).toLocaleDateString()}</td>
-                        <td>
-                            <button onclick="inspectOrderDetails('${o.id}')" class="btn-admin" style="padding: 4px 10px; font-size: 0.75rem;">VIEW</button>
-                        </td>
-                    </tr>
-                `).join('');
+            // Render Featured Products Grid on Homepage
+            const grid = document.getElementById('featuredProductsGrid');
+            if (grid && typeof products !== 'undefined') {
+                grid.innerHTML = products.slice(0, 6).map(renderProductCard).join('');
             }
         });
     </script>
