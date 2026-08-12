@@ -20,6 +20,23 @@ html, body {
     box-sizing: border-box;
 }
 
+.btn-google-auth {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+    .btn-google-auth {
+        padding: 12px 14px;
+        font-size: 0.88rem;
+    }
+    .btn-google-auth svg {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+    }
+}
+
 /* ==========================================================================
    Large Laptops & Desktops (1200px and down)
    ========================================================================== */

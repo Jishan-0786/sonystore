@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Supports Supabase Auth (Email / Password / OTP) alongside DEMO Phone verification.
- * Automatically synchronizes Supabase session with local customer portal state.
+ * Supports Supabase Auth (Google OAuth, Email/Password, Phone OTP)
+ * Automatically synchronizes Supabase sessions & OAuth profiles with local customer portal state.
  */
 
 function getLoggedInUser() {
@@ -19,6 +19,8 @@ function setLoggedInUser(user) {
         phone: user.phone || '+977 9800000000',
         name: user.name || user.full_name || 'Valued Customer',
         email: user.email || '',
+        avatar: user.avatar || user.avatar_url || '',
+        provider: user.provider || 'custom',
         loggedIn: true,
         loginTime: new Date().toISOString()
     };
@@ -50,7 +52,39 @@ function requireCustomerAuth(redirectUrl) {
     return true;
 }
 
-// Supabase Auth Integration Helpers
+// Google OAuth Integration
+async function signInWithGoogle() {
+    if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
+        try {
+            const redirectUrl = `${window.location.origin}/account.html`;
+            const { data, error } = await getSupabaseClient().auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: redirectUrl
+                }
+            });
+            if (error) throw error;
+        } catch (err) {
+            console.error('Google Auth Error:', err.message);
+            alert('Google Auth Error: ' + err.message + '\n\nPlease ensure Google Provider is enabled in your Supabase Project Dashboard under Authentication -> Providers.');
+        }
+    } else {
+        // Fallback demo Google sign-in when Supabase OAuth client is offline
+        setLoggedInUser({
+            id: 'demo-google-user-101',
+            email: 'vip.client@gmail.com',
+            name: 'VIP Google Client',
+            phone: '+977 9811112222',
+            provider: 'google'
+        });
+        if (typeof showToast === 'function') showToast('Signed in with Google (Demo)', '🔑');
+        setTimeout(() => {
+            window.location.href = 'account.html';
+        }, 500);
+    }
+}
+
+// Supabase Email Login & Signup Helpers
 async function loginWithSupabaseEmail(email, password) {
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
@@ -127,17 +161,45 @@ function updateAuthUI() {
 document.addEventListener('DOMContentLoaded', () => {
     updateAuthUI();
 
-    // Listen for Supabase session changes
+    // Listen for Supabase session changes & Google OAuth callbacks
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
-            getSupabaseClient().auth.onAuthStateChange((event, session) => {
+            getSupabaseClient().auth.onAuthStateChange(async (event, session) => {
                 if (session && session.user) {
+                    const user = session.user;
+                    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Valued Client';
+                    const userPhone = user.user_metadata?.phone || '+977 9800000000';
+                    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+
                     setLoggedInUser({
-                        id: session.user.id,
-                        email: session.user.email,
-                        phone: session.user.user_metadata?.phone || '+977 9800000000',
-                        name: session.user.user_metadata?.full_name || 'Valued Client'
+                        id: user.id,
+                        email: user.email,
+                        phone: userPhone,
+                        name: userName,
+                        avatar: avatarUrl,
+                        provider: user.app_metadata?.provider || 'google'
                     });
+
+                    // Create / Update user profile in Supabase profiles table
+                    if (window.supabaseClient) {
+                        try {
+                            await window.supabaseClient.from('profiles').upsert([{
+                                id: user.id,
+                                email: user.email,
+                                full_name: userName,
+                                phone: userPhone,
+                                avatar_url: avatarUrl,
+                                updated_at: new Date().toISOString()
+                            }], { onConflict: 'id' });
+                        } catch (e) {
+                            console.warn('Profile sync exception:', e.message);
+                        }
+                    }
+
+                    // Auto redirect to account.html if user is currently on login.html
+                    if (window.location.pathname.endsWith('login.html')) {
+                        window.location.href = 'account.html';
+                    }
                 }
             });
         } catch (e) {}

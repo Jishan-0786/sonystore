@@ -247,8 +247,16 @@
 
             const user = getLoggedInUser();
             if (user) {
-                document.getElementById('accUserPhone').textContent = user.phone;
+                document.getElementById('accUserPhone').textContent = user.email ? `Email: ${user.email}` : (user.phone || '+977 VIP Client');
                 document.getElementById('accUserName').textContent = user.name || 'Valued Client';
+                const avatarElem = document.getElementById('avatarInitial');
+                if (avatarElem) {
+                    if (user.avatar) {
+                        avatarElem.innerHTML = `<img src="${user.avatar}" alt="${user.name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    } else if (user.name) {
+                        avatarElem.textContent = user.name.charAt(0).toUpperCase();
+                    }
+                }
             }
 
             const orders = getCustomerOrders(user ? user.phone : '');
