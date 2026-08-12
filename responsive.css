@@ -1,0 +1,235 @@
+/* ==========================================================================
+   SONY STORE - RESPONSIVE STYLESHEET
+   Mobile, Tablet, Laptop & Desktop Breakpoints
+   ========================================================================== */
+
+/* Large Laptops & Desktops (1200px and down) */
+@media (max-width: 1200px) {
+    .hero-title {
+        font-size: 3.5rem;
+    }
+    .hero-grid {
+        gap: 40px;
+    }
+    .product-detail-grid {
+        gap: 40px;
+    }
+    .interactive-why-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Laptops & Tablets (992px and down) */
+@media (max-width: 992px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .hero-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+    }
+
+    .product-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .mission-vision-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .why-grid, .interactive-why-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .promise-stages-container {
+        grid-template-columns: 1fr;
+    }
+
+    .founder-name-title {
+        font-size: 3.2rem;
+        letter-spacing: 4px;
+    }
+
+    .quote-text {
+        font-size: 1.4rem;
+    }
+}
+
+/* Mobile Devices & Small Tablets (768px and down) */
+@media (max-width: 768px) {
+    .site-header .main-nav {
+        position: fixed;
+        top: 80px;
+        left: 0;
+        width: 100%;
+        background: rgba(9, 10, 15, 0.98);
+        backdrop-filter: blur(20px);
+        flex-direction: column;
+        padding: 40px 24px;
+        gap: 24px;
+        border-bottom: 1px solid var(--border-gold);
+        transform: translateY(-150%);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 999;
+    }
+
+    .site-header .main-nav.mobile-active {
+        transform: translateY(0);
+    }
+
+    .mobile-toggle {
+        display: block;
+    }
+
+    .hero-title {
+        font-size: 2.3rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .why-grid, .interactive-why-grid, .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .shop-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cart-drawer {
+        width: 100%;
+    }
+
+    .btn-group-detail {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-typography-card {
+        padding: 48px 24px;
+    }
+
+    .founder-name-title {
+        font-size: 2.5rem;
+        letter-spacing: 3px;
+    }
+
+    .story-lead-text, .story-body-paragraph {
+        font-size: 1.02rem;
+    }
+
+    .timeline-line {
+        left: 20px;
+    }
+
+    .timeline-item {
+        margin-left: 55px;
+        padding: 24px 20px;
+    }
+
+    .timeline-node {
+        left: -53px;
+        width: 38px;
+        height: 38px;
+        font-size: 0.85rem;
+    }
+
+    .testimonial-carousel-wrapper {
+        padding: 0 10px;
+    }
+
+    .carousel-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .prev-btn { left: -10px; }
+    .next-btn { right: -10px; }
+
+    .testimonial-card {
+        padding: 36px 20px;
+    }
+
+    .review-text {
+        font-size: 1.05rem;
+    }
+}
+
+/* Small Mobile Screens (480px and down) */
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 1.9rem;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .main-image-viewer {
+        height: 320px;
+    }
+
+    .thumb-item {
+        width: 70px;
+        height: 70px;
+    }
+
+    .founder-name-title {
+        font-size: 2rem;
+        letter-spacing: 2px;
+    }
+
+    .founder-title-badge {
+        font-size: 0.9rem;
+    }
+
+    .quote-card {
+        padding: 36px 18px;
+    }
+
+    .quote-mark {
+        font-size: 3.8rem;
+    }
+
+    .quote-text {
+        font-size: 1.1rem;
+    }
+
+    .cta-title {
+        font-size: 2.2rem;
+    }
+}
