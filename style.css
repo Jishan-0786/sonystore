@@ -162,11 +162,22 @@ img {
     font-weight: 800;
     letter-spacing: 2px;
     color: var(--text-main);
+    flex-shrink: 0;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.brand-text-box, .brand-logo > div:not(.logo-badge) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1;
 }
 
 .logo-badge {
     width: 40px;
     height: 40px;
+    min-width: 40px;
     border-radius: 50%;
     background: var(--gold-gradient);
     display: flex;
@@ -176,6 +187,7 @@ img {
     font-weight: 900;
     font-size: 1.1rem;
     box-shadow: 0 0 15px var(--gold-glow);
+    flex-shrink: 0;
 }
 
 .brand-sub {
@@ -184,6 +196,8 @@ img {
     letter-spacing: 3px;
     color: var(--gold-primary);
     font-weight: 600;
+    margin-top: 2px;
+    white-space: nowrap;
 }
 
 /* Navigation Links */

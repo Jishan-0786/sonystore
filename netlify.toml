@@ -1,10 +1,21 @@
 # ==========================================================================
 # SONY STORE - NETLIFY DEPLOYMENT CONFIGURATION
-# Configures the publish root directory for static hosting on Netlify.
+# Configures the publish root directory & admin redirects for Netlify.
 # ==========================================================================
 
 [build]
   publish = "."
+
+# Netlify Redirects for Admin Panel
+[[redirects]]
+  from = "/admin"
+  to = "/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/"
+  to = "/admin/index.html"
+  status = 200
 
 [[headers]]
   for = "/*"

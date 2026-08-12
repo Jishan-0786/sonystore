@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Settings | SONY STORE Admin</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .settings-card {
+            max-width: 650px;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 14px;
+            padding: 36px;
+        }
+        .form-row {
+            margin-bottom: 20px;
+        }
+        .form-row label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--gold-light);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">S</div>
+            <div class="sidebar-logo-text">
+                <div style="font-family: var(--font-heading); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">SONY STORE</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">ADMIN PANEL</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">📊 <span>Dashboard</span></a>
+            <a href="orders.html" class="sidebar-link">📦 <span>Orders</span></a>
+            <a href="products.html" class="sidebar-link">⌚ <span>Products</span></a>
+            <a href="products.html?tab=stock" class="sidebar-link">📉 <span>Stock</span></a>
+            <a href="customers.html" class="sidebar-link">👥 <span>Customers</span></a>
+            <a href="settings.html" class="sidebar-link active">⚙️ <span>Settings</span></a>
+            <a href="../index.html" class="sidebar-link" target="_blank">🌐 <span>View Store</span></a>
+        </nav>
+
+        <div style="padding: 16px; border-top: 1px solid var(--admin-border-subtle);">
+            <button onclick="logoutAdmin()" class="btn-admin btn-admin-danger" style="width: 100%; font-size: 0.8rem; justify-content: center;">
+                🚪 Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-main">
+        
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <button class="mobile-admin-toggle" id="adminMobileToggle">☰</button>
+                <h2 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">STORE SETTINGS</h2>
+            </div>
+
+            <div class="admin-header-actions">
+                <div style="font-size: 0.85rem; color: var(--text-muted);" id="adminCurrentDate">Today</div>
+                
+                <div class="notif-wrapper">
+                    <button class="notif-btn" id="adminNotifBtn" title="Notifications">
+                        🔔
+                        <span class="notif-badge" id="adminNotifBadge" style="display: none;">0</span>
+                    </button>
+                    <div class="notif-dropdown" id="adminNotifDropdown"></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            
+            <div class="settings-card">
+                <h3 style="font-family: var(--font-heading); font-size: 1.4rem; color: var(--gold-light); margin-bottom: 24px; border-bottom: 1px solid var(--admin-border-subtle); padding-bottom: 12px;">STORE CONFIGURATION</h3>
+
+                <form id="settingsForm">
+                    <div class="form-row">
+                        <label>Store Name</label>
+                        <input type="text" id="setStoreName" class="admin-input" style="width: 100%;" required>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;" class="form-row">
+                        <div>
+                            <label>Currency Symbol</label>
+                            <input type="text" id="setCurrency" class="admin-input" style="width: 100%;" required>
+                        </div>
+                        <div>
+                            <label>Default Delivery Fee ($)</label>
+                            <input type="number" id="setDeliveryFee" class="admin-input" style="width: 100%;" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Low-Stock Alert Threshold (Units)</label>
+                        <input type="number" id="setLowStockThreshold" class="admin-input" style="width: 100%;" required>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Products with stock count equal to or below this threshold trigger admin notifications.</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;" class="form-row">
+                        <div>
+                            <label>Contact Phone</label>
+                            <input type="text" id="setContactPhone" class="admin-input" style="width: 100%;" required>
+                        </div>
+                        <div>
+                            <label>Contact Email</label>
+                            <input type="email" id="setContactEmail" class="admin-input" style="width: 100%;" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-admin" style="padding: 14px 32px; font-size: 0.95rem; margin-top: 10px;">
+                        💾 SAVE SETTINGS
+                    </button>
+                </form>
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const settings = getStoreSettings();
+            document.getElementById('setStoreName').value = settings.storeName || 'SONY STORE';
+            document.getElementById('setCurrency').value = settings.currency || '$';
+            document.getElementById('setDeliveryFee').value = settings.deliveryFee || 0;
+            document.getElementById('setLowStockThreshold').value = settings.lowStockThreshold || 5;
+            document.getElementById('setContactPhone').value = settings.contactPhone || '+1 (800) 555-SONY-WATCH';
+            document.getElementById('setContactEmail').value = settings.contactEmail || 'support@sonystore.com';
+
+            document.getElementById('settingsForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const updated = {
+                    storeName: document.getElementById('setStoreName').value.trim(),
+                    currency: document.getElementById('setCurrency').value.trim(),
+                    deliveryFee: parseFloat(document.getElementById('setDeliveryFee').value) || 0,
+                    lowStockThreshold: parseInt(document.getElementById('setLowStockThreshold').value) || 5,
+                    contactPhone: document.getElementById('setContactPhone').value.trim(),
+                    contactEmail: document.getElementById('setContactEmail').value.trim()
+                };
+
+                saveStoreSettings(updated);
+                alert('Store Settings Saved Successfully!');
+                updateAdminNotifications();
+            });
+        });
+    </script>
+</body>
+</html>

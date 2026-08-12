@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product & Stock Management | SONY STORE Admin</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .stock-tab-btn {
+            padding: 8px 18px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--admin-border-subtle);
+            color: var(--text-muted);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        .stock-tab-btn.active {
+            background: var(--gold-primary);
+            color: #000;
+            font-weight: 700;
+            border-color: var(--gold-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">S</div>
+            <div class="sidebar-logo-text">
+                <div style="font-family: var(--font-heading); font-weight: 700; color: var(--gold-light); font-size: 0.95rem;">SONY STORE</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">ADMIN PANEL</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">📊 <span>Dashboard</span></a>
+            <a href="orders.html" class="sidebar-link">📦 <span>Orders</span></a>
+            <a href="products.html" class="sidebar-link active">⌚ <span>Products</span></a>
+            <a href="products.html?tab=stock" class="sidebar-link">📉 <span>Stock</span></a>
+            <a href="customers.html" class="sidebar-link">👥 <span>Customers</span></a>
+            <a href="settings.html" class="sidebar-link">⚙️ <span>Settings</span></a>
+            <a href="../index.html" class="sidebar-link" target="_blank">🌐 <span>View Store</span></a>
+        </nav>
+
+        <div style="padding: 16px; border-top: 1px solid var(--admin-border-subtle);">
+            <button onclick="logoutAdmin()" class="btn-admin btn-admin-danger" style="width: 100%; font-size: 0.8rem; justify-content: center;">
+                🚪 Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-main">
+        
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <button class="mobile-admin-toggle" id="adminMobileToggle">☰</button>
+                <h2 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold-light);">PRODUCT & STOCK MANAGEMENT</h2>
+            </div>
+
+            <div class="admin-header-actions">
+                <button onclick="openAddProductModal()" class="btn-admin">+ ADD NEW TIMEPIECE</button>
+
+                <div class="notif-wrapper">
+                    <button class="notif-btn" id="adminNotifBtn" title="Notifications">
+                        🔔
+                        <span class="notif-badge" id="adminNotifBadge" style="display: none;">0</span>
+                    </button>
+                    <div class="notif-dropdown" id="adminNotifDropdown"></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            
+            <!-- CONTROLS & STOCK FILTER TABS -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <input type="text" id="prodSearchInput" class="admin-input" placeholder="Search by product name, brand, category, SKU..." style="flex: 1; min-width: 250px; max-width: 400px;">
+                
+                <div style="display: flex; gap: 8px;">
+                    <button class="stock-tab-btn active" onclick="filterStockTab('all', this)">All Products</button>
+                    <button class="stock-tab-btn" onclick="filterStockTab('in-stock', this)">🟢 In Stock</button>
+                    <button class="stock-tab-btn" onclick="filterStockTab('low-stock', this)">🟠 Low Stock</button>
+                    <button class="stock-tab-btn" onclick="filterStockTab('out-of-stock', this)">🔴 Out of Stock</button>
+                </div>
+            </div>
+
+            <!-- PRODUCTS TABLE -->
+            <div class="admin-table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>IMAGE</th>
+                            <th>NAME & BRAND</th>
+                            <th>CATEGORY</th>
+                            <th>PRICE</th>
+                            <th>UPDATE STOCK</th>
+                            <th>STOCK STATUS</th>
+                            <th>SKU</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTbody">
+                        <!-- Populated dynamically via js/products.js -->
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ADD / EDIT PRODUCT MODAL -->
+    <div id="productModal" class="admin-modal-backdrop">
+        <div class="admin-modal">
+            <button onclick="document.getElementById('productModal').style.display = 'none'" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">✕</button>
+            <h3 style="font-family: var(--font-heading); color: var(--gold-light); margin-bottom: 20px;" id="modalFormTitle">ADD NEW TIMEPIECE</h3>
+            
+            <form id="productForm">
+                <input type="hidden" id="prodIdInput">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Product Name *</label>
+                        <input type="text" id="prodName" class="admin-input" style="width: 100%;" required>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Brand *</label>
+                        <input type="text" id="prodBrand" class="admin-input" style="width: 100%;" value="SONY STORE Luxury" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Price ($) *</label>
+                        <input type="number" id="prodPrice" class="admin-input" style="width: 100%;" required>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Old Price ($)</label>
+                        <input type="number" id="prodOldPrice" class="admin-input" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Stock Count *</label>
+                        <input type="number" id="prodStock" class="admin-input" style="width: 100%;" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Category</label>
+                        <select id="prodCategory" class="admin-select" style="width: 100%;">
+                            <option value="Luxury">Luxury</option>
+                            <option value="Classic">Classic</option>
+                            <option value="Sport">Sport</option>
+                            <option value="Minimal">Minimal</option>
+                            <option value="Automatic">Automatic</option>
+                            <option value="Chronograph">Chronograph</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">SKU Reference</label>
+                        <input type="text" id="prodSku" class="admin-input" style="width: 100%;" placeholder="SNY-PRD-XXX">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.8rem; color: var(--gold-light);">Description</label>
+                    <textarea id="prodDesc" class="admin-input" style="width: 100%; height: 60px;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Movement</label>
+                        <input type="text" id="prodMovement" class="admin-input" style="width: 100%;" placeholder="Calibre Automatic">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Material</label>
+                        <input type="text" id="prodMaterial" class="admin-input" style="width: 100%;" placeholder="18k Rose Gold / Titanium">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Case Size</label>
+                        <input type="text" id="prodCase" class="admin-input" style="width: 100%;" placeholder="42mm">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--gold-light);">Strap Material</label>
+                        <input type="text" id="prodStrap" class="admin-input" style="width: 100%;" placeholder="Leather / Steel Mesh">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 0.8rem; color: var(--gold-light);">Water Resistance</label>
+                    <input type="text" id="prodWater" class="admin-input" style="width: 100%;" placeholder="100m / 10 ATM">
+                </div>
+
+                <button type="submit" class="btn-admin" style="width: 100%; padding: 14px; justify-content: center;">SAVE TIMEPIECE →</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/products.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab') === 'stock') {
+                filterStockTab('low-stock', document.querySelectorAll('.stock-tab-btn')[2]);
+            }
+        });
+    </script>
+</body>
+</html>
