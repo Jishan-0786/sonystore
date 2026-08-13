@@ -1,8 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Supports Supabase Auth (Google OAuth, Email/Password, Phone OTP)
- * Uses existing Supabase client from supabase.js.
- * Automatically synchronizes Supabase sessions & OAuth profiles with local customer portal state.
+ * Uses Supabase auth session as single source of truth with instant navbar & profile sync.
  */
 
 function getLoggedInUser() {
@@ -79,8 +78,6 @@ async function signInWithGoogle() {
     try {
         const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
 
-        console.log('[DEBUG] Supabase client exists:', Boolean(client));
-
         if (!client || !client.auth) {
             throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
@@ -95,15 +92,9 @@ async function signInWithGoogle() {
             }
         });
 
-        console.log('[DEBUG] returned data:', data);
-        console.log('[DEBUG] returned error:', error);
-
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
         if (data && data.url) {
-            console.log('[DEBUG] Redirecting browser to OAuth URL:', data.url);
             window.location.href = data.url;
         }
 
@@ -139,12 +130,7 @@ async function loginWithSupabaseEmail(email, password) {
             const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
             if (error) throw error;
             if (data && data.user) {
-                setLoggedInUser({
-                    id: data.user.id,
-                    email: data.user.email,
-                    phone: data.user.user_metadata?.phone || '+977 9800000000',
-                    name: data.user.user_metadata?.full_name || 'Valued Client'
-                });
+                handleAuthenticatedUserSession(data.user);
                 return { success: true, user: data.user };
             }
         } catch (e) {
@@ -173,6 +159,43 @@ async function signUpWithSupabaseEmail(email, password, phone, name) {
     return { success: false, error: 'Supabase client not initialized.' };
 }
 
+// Handle Authenticated User Session and Profile Upserting
+async function handleAuthenticatedUserSession(user) {
+    if (!user) return;
+
+    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Valued Client';
+    const userPhone = user.user_metadata?.phone || '+977 9800000000';
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+
+    setLoggedInUser({
+        id: user.id,
+        email: user.email,
+        phone: userPhone,
+        name: userName,
+        avatar: avatarUrl,
+        provider: user.app_metadata?.provider || 'google'
+    });
+
+    // Create / Update user profile in Supabase profiles table without duplicates
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    if (client) {
+        try {
+            await client.from('profiles').upsert([{
+                id: user.id,
+                email: user.email,
+                full_name: userName,
+                phone: userPhone,
+                avatar_url: avatarUrl,
+                updated_at: new Date().toISOString()
+            }], { onConflict: 'id' });
+        } catch (e) {
+            console.warn('Profile sync notice:', e.message || e);
+        }
+    }
+
+    updateAuthUI();
+}
+
 // Update Header Navigation Authentication Link (LOGIN / ACCOUNT)
 function updateAuthUI() {
     const user = getLoggedInUser();
@@ -188,7 +211,16 @@ function updateAuthUI() {
 
         if (user) {
             authLink.href = 'account.html';
-            authLink.textContent = 'Account';
+            authLink.style.display = 'inline-flex';
+            authLink.style.alignItems = 'center';
+            authLink.style.gap = '6px';
+
+            if (user.avatar) {
+                authLink.innerHTML = `<img src="${user.avatar}" alt="${user.name}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>Account</span>`;
+            } else {
+                authLink.innerHTML = `👤 <span>Account</span>`;
+            }
+
             if (window.location.pathname.endsWith('account.html') || window.location.pathname.endsWith('orders.html')) {
                 authLink.classList.add('active');
             } else {
@@ -196,7 +228,7 @@ function updateAuthUI() {
             }
         } else {
             authLink.href = 'login.html';
-            authLink.textContent = 'Login';
+            authLink.innerHTML = 'Login';
             if (window.location.pathname.endsWith('login.html')) {
                 authLink.classList.add('active');
             } else {
@@ -206,10 +238,12 @@ function updateAuthUI() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Main Page Initialization & Supabase Session Listener
+async function initAuthSystem() {
+    // 1. Initial UI state update
     updateAuthUI();
 
-    // Attach Google OAuth button listener
+    // 2. Attach Google OAuth button listener if present on page
     const googleBtn = document.getElementById('googleAuthBtn');
     if (googleBtn) {
         googleBtn.addEventListener('click', (e) => {
@@ -218,42 +252,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Listen for Supabase session changes & Google OAuth callbacks
+    // 3. Query active Supabase session & register auth change listener
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
             const client = getSupabaseClient();
             if (client && client.auth) {
+
+                // Call getSession on page load to detect established session immediately
+                const { data: { session }, error } = await client.auth.getSession();
+                if (session && session.user) {
+                    await handleAuthenticatedUserSession(session.user);
+                }
+
+                // Listen for Auth changes (SIGNED_IN, TOKEN_REFRESHED, SIGNED_OUT)
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.log('[DEBUG] Supabase Auth Event:', event, session);
 
-                    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session && session.user) {
-                        const user = session.user;
-                        const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Valued Client';
-                        const userPhone = user.user_metadata?.phone || '+977 9800000000';
-                        const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
-
-                        setLoggedInUser({
-                            id: user.id,
-                            email: user.email,
-                            phone: userPhone,
-                            name: userName,
-                            avatar: avatarUrl,
-                            provider: user.app_metadata?.provider || 'google'
-                        });
-
-                        // Create / Update user profile in Supabase profiles table
-                        try {
-                            await client.from('profiles').upsert([{
-                                id: user.id,
-                                email: user.email,
-                                full_name: userName,
-                                phone: userPhone,
-                                avatar_url: avatarUrl,
-                                updated_at: new Date().toISOString()
-                            }], { onConflict: 'id' });
-                        } catch (e) {
-                            console.warn('Profile sync notice:', e.message || e);
-                        }
+                    if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+                        await handleAuthenticatedUserSession(session.user);
 
                         // Clean up URL hash if returning from OAuth redirect with access_token
                         if (window.location.hash.includes('access_token')) {
@@ -262,17 +278,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
 
-                        // Clean redirection to main page upon SIGNED_IN event
-                        if (event === 'SIGNED_IN' || window.location.pathname.endsWith('login.html')) {
-                            const targetPage = 'index.html';
-                            console.log('[DEBUG] Redirecting authenticated customer to main page:', targetPage);
+                        // Auto redirect to account.html if user is on login page
+                        if (window.location.pathname.endsWith('login.html')) {
+                            const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+                            const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
                             window.location.href = targetPage;
                         }
+                    } else if (event === 'SIGNED_OUT') {
+                        localStorage.removeItem('sony_store_user');
+                        updateAuthUI();
                     }
                 });
             }
         } catch (e) {
-            console.warn('Auth state change error:', e);
+            console.warn('Auth system init notice:', e);
         }
     }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initAuthSystem();
 });
