@@ -36,6 +36,19 @@ function setLoggedInUser(user) {
     updateAuthUI();
 }
 
+function resetGoogleButtonState() {
+    const btn = document.getElementById('googleAuthBtn');
+    const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
+    if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    }
+    if (btnText) {
+        btnText.textContent = 'Continue with Google';
+    }
+}
+
 async function logoutUser() {
     currentAuthUser = null;
     localStorage.removeItem('sony_store_user');
@@ -93,7 +106,7 @@ async function signInWithGoogle() {
             throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
 
-        const redirectTarget = 'https://sonywatchstore.netlify.app';
+        const redirectTarget = 'https://sonywatchstore.netlify.app/login.html';
 
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
@@ -110,15 +123,7 @@ async function signInWithGoogle() {
 
     } catch (err) {
         console.error('[DEBUG] signInWithOAuth exception caught:', err);
-
-        if (btn) {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
-        }
-        if (btnText) {
-            btnText.textContent = originalText;
-        }
+        resetGoogleButtonState();
 
         const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
 
@@ -265,23 +270,22 @@ async function initAuthSystem() {
         });
     }
 
-    // Query active Supabase session & register auth change listener
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
             const client = getSupabaseClient();
             if (client && client.auth) {
-                console.log('[DEBUG] Callback URL:', window.location.href);
-
-                // 1. Check if URL contains an OAuth authorization code (?code=...)
                 const urlParams = new URLSearchParams(window.location.search);
                 const authCode = urlParams.get('code');
+                const hasHashToken = window.location.hash.includes('access_token');
 
-                console.log('[DEBUG] OAuth code detected:', authCode ? 'YES' : 'NO');
+                if (authCode || hasHashToken) {
+                    console.log('OAuth callback detected');
+                }
 
                 if (authCode && typeof client.auth.exchangeCodeForSession === 'function') {
+                    console.log('Exchanging OAuth code...');
                     try {
                         const { data: exchangeData, error: exchangeErr } = await client.auth.exchangeCodeForSession(authCode);
-                        console.log('[DEBUG] exchangeCodeForSession result:', exchangeData ? 'SUCCESS' : 'NONE');
                         if (exchangeErr) {
                             console.error('[DEBUG] exchangeCodeForSession error:', exchangeErr.message || exchangeErr);
                         }
@@ -290,30 +294,43 @@ async function initAuthSystem() {
                     }
                 }
 
-                // 2. Fetch session AFTER exchangeCodeForSession
-                const { data: { session }, error: sessionErr } = await client.auth.getSession();
+                // Query session after exchange
+                const { data: { session } } = await client.auth.getSession();
                 console.log("CURRENT SESSION:", session);
 
                 if (session && session.user) {
+                    console.log('Session restored');
+                    console.log('User ID exists');
                     await syncSupabaseSessionUser(session.user);
+
+                    // Clean up URL query parameters (?code=...) or hash fragment
+                    if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
+                        if (window.history && window.history.replaceState) {
+                            const cleanUrl = window.location.origin + window.location.pathname;
+                            window.history.replaceState(null, null, cleanUrl);
+                        }
+                    }
+
+                    // Redirect to account.html if user is on login page
+                    if (window.location.pathname.endsWith('login.html')) {
+                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+                        const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                        window.location.href = targetPage;
+                        return;
+                    }
+                } else {
+                    resetGoogleButtonState();
                 }
 
-                // 3. Register Auth Event Listener
+                // Register Auth Event Listener
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.log("AUTH EVENT:", event, session);
 
                     if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+                        console.log('Session restored');
+                        console.log('User ID exists');
                         await syncSupabaseSessionUser(session.user);
 
-                        // Clean up URL query parameters (?code=...) or hash fragment
-                        if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
-                            if (window.history && window.history.replaceState) {
-                                const cleanUrl = window.location.origin + window.location.pathname;
-                                window.history.replaceState(null, null, cleanUrl);
-                            }
-                        }
-
-                        // Auto redirect to account.html if customer returns on login.html
                         if (window.location.pathname.endsWith('login.html')) {
                             const redirectParam = new URLSearchParams(window.location.search).get('redirect');
                             const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
@@ -323,11 +340,13 @@ async function initAuthSystem() {
                         currentAuthUser = null;
                         localStorage.removeItem('sony_store_user');
                         updateAuthUI();
+                        resetGoogleButtonState();
                     }
                 });
             }
         } catch (e) {
             console.warn('Auth system init notice:', e);
+            resetGoogleButtonState();
         }
     }
 }
