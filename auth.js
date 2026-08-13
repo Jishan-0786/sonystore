@@ -89,8 +89,6 @@ async function signInWithGoogle() {
     try {
         const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
 
-        console.log('[DEBUG] Supabase client exists:', Boolean(client));
-
         if (!client || !client.auth) {
             throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
@@ -188,7 +186,7 @@ async function syncSupabaseSessionUser(user) {
         provider: user.app_metadata?.provider || 'google'
     });
 
-    // Create / Update user profile in Supabase profiles table without duplicates
+    // Create / Update user profile in Supabase profiles table without duplicates using user.id
     const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
     if (client) {
         try {
@@ -211,14 +209,16 @@ async function syncSupabaseSessionUser(user) {
 // Update Header Navigation Authentication Link (LOGIN vs ACCOUNT)
 function updateAuthUI() {
     const user = getLoggedInUser();
-    const navs = document.querySelectorAll('#mainNav');
+    const navs = document.querySelectorAll('#mainNav, .main-nav');
     
     navs.forEach(nav => {
-        let authLink = nav.querySelector('.nav-link-auth');
+        let authLink = nav.querySelector('.nav-link-auth') || nav.querySelector('a[href="login.html"]') || nav.querySelector('a[href="account.html"]');
         if (!authLink) {
             authLink = document.createElement('a');
             authLink.className = 'nav-link nav-link-auth';
             nav.appendChild(authLink);
+        } else {
+            authLink.classList.add('nav-link-auth');
         }
 
         if (user && user.loggedIn) {
@@ -228,9 +228,9 @@ function updateAuthUI() {
             authLink.style.gap = '6px';
 
             if (user.avatar) {
-                authLink.innerHTML = `<img src="${user.avatar}" alt="${user.name}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>Account</span>`;
+                authLink.innerHTML = `<img src="${user.avatar}" alt="${user.name}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>${user.name || 'Account'}</span>`;
             } else {
-                authLink.innerHTML = `👤 <span>Account</span>`;
+                authLink.innerHTML = `👤 <span>${user.name || 'Account'}</span>`;
             }
 
             if (window.location.pathname.endsWith('account.html') || window.location.pathname.endsWith('orders.html')) {
@@ -271,15 +271,17 @@ async function initAuthSystem() {
             const client = getSupabaseClient();
             if (client && client.auth) {
 
-                // 1. Immediately check active session on page load
+                // 3. On every page load, run getSession and log result
                 const { data: { session } } = await client.auth.getSession();
+                console.log("CURRENT SESSION:", session);
+
                 if (session && session.user) {
                     await syncSupabaseSessionUser(session.user);
                 }
 
-                // 2. Listen for Auth events (SIGNED_IN, TOKEN_REFRESHED, SIGNED_OUT)
+                // 5. Add/verify onAuthStateChange and log event
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.log('[DEBUG] Supabase Auth Event:', event, session);
+                    console.log("AUTH EVENT:", event, session);
 
                     if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
                         await syncSupabaseSessionUser(session.user);
