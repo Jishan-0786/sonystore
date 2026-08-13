@@ -1,6 +1,6 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
+ * Single Source of Truth Session Management for Supabase Auth & Google OAuth (PKCE & Implicit).
  */
 
 // Global active user state
@@ -270,26 +270,46 @@ async function initAuthSystem() {
         try {
             const client = getSupabaseClient();
             if (client && client.auth) {
+                console.log('[DEBUG] Callback URL:', window.location.href);
 
-                // 3. On every page load, run getSession and log result
-                const { data: { session } } = await client.auth.getSession();
+                // 1. Check if URL contains an OAuth authorization code (?code=...)
+                const urlParams = new URLSearchParams(window.location.search);
+                const authCode = urlParams.get('code');
+
+                console.log('[DEBUG] OAuth code detected:', authCode ? 'YES' : 'NO');
+
+                if (authCode && typeof client.auth.exchangeCodeForSession === 'function') {
+                    try {
+                        const { data: exchangeData, error: exchangeErr } = await client.auth.exchangeCodeForSession(authCode);
+                        console.log('[DEBUG] exchangeCodeForSession result:', exchangeData ? 'SUCCESS' : 'NONE');
+                        if (exchangeErr) {
+                            console.error('[DEBUG] exchangeCodeForSession error:', exchangeErr.message || exchangeErr);
+                        }
+                    } catch (codeErr) {
+                        console.error('[DEBUG] exchangeCodeForSession exception:', codeErr);
+                    }
+                }
+
+                // 2. Fetch session AFTER exchangeCodeForSession
+                const { data: { session }, error: sessionErr } = await client.auth.getSession();
                 console.log("CURRENT SESSION:", session);
 
                 if (session && session.user) {
                     await syncSupabaseSessionUser(session.user);
                 }
 
-                // 5. Add/verify onAuthStateChange and log event
+                // 3. Register Auth Event Listener
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.log("AUTH EVENT:", event, session);
 
                     if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
                         await syncSupabaseSessionUser(session.user);
 
-                        // Clean up URL hash if returning from OAuth redirect with access_token
-                        if (window.location.hash.includes('access_token')) {
+                        // Clean up URL query parameters (?code=...) or hash fragment
+                        if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
                             if (window.history && window.history.replaceState) {
-                                window.history.replaceState(null, null, window.location.pathname);
+                                const cleanUrl = window.location.origin + window.location.pathname;
+                                window.history.replaceState(null, null, cleanUrl);
                             }
                         }
 
