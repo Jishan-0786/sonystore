@@ -1,16 +1,23 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Supports Supabase Auth (Google OAuth, Email/Password, Phone OTP)
- * Uses Supabase auth session as single source of truth with instant navbar & profile sync.
+ * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
  */
 
+// Global active user state
+let currentAuthUser = null;
+
 function getLoggedInUser() {
-    try {
-        const user = JSON.parse(localStorage.getItem('sony_store_user'));
-        return user && user.loggedIn ? user : null;
-    } catch (e) {
-        return null;
+    if (currentAuthUser && currentAuthUser.loggedIn) {
+        return currentAuthUser;
     }
+    try {
+        const stored = JSON.parse(localStorage.getItem('sony_store_user'));
+        if (stored && stored.loggedIn) {
+            currentAuthUser = stored;
+            return stored;
+        }
+    } catch (e) {}
+    return null;
 }
 
 function setLoggedInUser(user) {
@@ -20,26 +27,30 @@ function setLoggedInUser(user) {
         name: user.name || user.full_name || 'Valued Customer',
         email: user.email || '',
         avatar: user.avatar || user.avatar_url || '',
-        provider: user.provider || 'custom',
+        provider: user.provider || 'google',
         loggedIn: true,
         loginTime: new Date().toISOString()
     };
+    currentAuthUser = userData;
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
     updateAuthUI();
 }
 
 async function logoutUser() {
+    currentAuthUser = null;
+    localStorage.removeItem('sony_store_user');
+    
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
             await getSupabaseClient().auth.signOut();
         } catch (e) {}
     }
-    localStorage.removeItem('sony_store_user');
+    
     updateAuthUI();
     if (typeof showToast === 'function') showToast('Logged out successfully', '👋');
     setTimeout(() => {
         window.location.href = 'index.html';
-    }, 800);
+    }, 600);
 }
 
 function requireCustomerAuth(redirectUrl) {
@@ -78,12 +89,13 @@ async function signInWithGoogle() {
     try {
         const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
 
+        console.log('[DEBUG] Supabase client exists:', Boolean(client));
+
         if (!client || !client.auth) {
             throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
 
         const redirectTarget = 'https://sonywatchstore.netlify.app';
-        console.log('[DEBUG] signInWithOAuth started with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
@@ -130,7 +142,7 @@ async function loginWithSupabaseEmail(email, password) {
             const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
             if (error) throw error;
             if (data && data.user) {
-                handleAuthenticatedUserSession(data.user);
+                await syncSupabaseSessionUser(data.user);
                 return { success: true, user: data.user };
             }
         } catch (e) {
@@ -159,8 +171,8 @@ async function signUpWithSupabaseEmail(email, password, phone, name) {
     return { success: false, error: 'Supabase client not initialized.' };
 }
 
-// Handle Authenticated User Session and Profile Upserting
-async function handleAuthenticatedUserSession(user) {
+// Synchronize Supabase User Object into Local Session & Profiles Table
+async function syncSupabaseSessionUser(user) {
     if (!user) return;
 
     const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Valued Client';
@@ -196,7 +208,7 @@ async function handleAuthenticatedUserSession(user) {
     updateAuthUI();
 }
 
-// Update Header Navigation Authentication Link (LOGIN / ACCOUNT)
+// Update Header Navigation Authentication Link (LOGIN vs ACCOUNT)
 function updateAuthUI() {
     const user = getLoggedInUser();
     const navs = document.querySelectorAll('#mainNav');
@@ -209,7 +221,7 @@ function updateAuthUI() {
             nav.appendChild(authLink);
         }
 
-        if (user) {
+        if (user && user.loggedIn) {
             authLink.href = 'account.html';
             authLink.style.display = 'inline-flex';
             authLink.style.alignItems = 'center';
@@ -229,6 +241,7 @@ function updateAuthUI() {
         } else {
             authLink.href = 'login.html';
             authLink.innerHTML = 'Login';
+            authLink.style.display = 'inline-block';
             if (window.location.pathname.endsWith('login.html')) {
                 authLink.classList.add('active');
             } else {
@@ -238,12 +251,12 @@ function updateAuthUI() {
     });
 }
 
-// Main Page Initialization & Supabase Session Listener
+// Immediate Page Load & OAuth Return Handler
 async function initAuthSystem() {
-    // 1. Initial UI state update
+    // Render immediate local state
     updateAuthUI();
 
-    // 2. Attach Google OAuth button listener if present on page
+    // Attach Google OAuth button listener if present on page
     const googleBtn = document.getElementById('googleAuthBtn');
     if (googleBtn) {
         googleBtn.addEventListener('click', (e) => {
@@ -252,24 +265,24 @@ async function initAuthSystem() {
         });
     }
 
-    // 3. Query active Supabase session & register auth change listener
+    // Query active Supabase session & register auth change listener
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
             const client = getSupabaseClient();
             if (client && client.auth) {
 
-                // Call getSession on page load to detect established session immediately
-                const { data: { session }, error } = await client.auth.getSession();
+                // 1. Immediately check active session on page load
+                const { data: { session } } = await client.auth.getSession();
                 if (session && session.user) {
-                    await handleAuthenticatedUserSession(session.user);
+                    await syncSupabaseSessionUser(session.user);
                 }
 
-                // Listen for Auth changes (SIGNED_IN, TOKEN_REFRESHED, SIGNED_OUT)
+                // 2. Listen for Auth events (SIGNED_IN, TOKEN_REFRESHED, SIGNED_OUT)
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.log('[DEBUG] Supabase Auth Event:', event, session);
 
                     if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
-                        await handleAuthenticatedUserSession(session.user);
+                        await syncSupabaseSessionUser(session.user);
 
                         // Clean up URL hash if returning from OAuth redirect with access_token
                         if (window.location.hash.includes('access_token')) {
@@ -278,13 +291,14 @@ async function initAuthSystem() {
                             }
                         }
 
-                        // Auto redirect to account.html if user is on login page
+                        // Auto redirect to account.html if customer returns on login.html
                         if (window.location.pathname.endsWith('login.html')) {
                             const redirectParam = new URLSearchParams(window.location.search).get('redirect');
                             const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
                             window.location.href = targetPage;
                         }
                     } else if (event === 'SIGNED_OUT') {
+                        currentAuthUser = null;
                         localStorage.removeItem('sony_store_user');
                         updateAuthUI();
                     }
