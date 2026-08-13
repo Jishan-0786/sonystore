@@ -1,11 +1,10 @@
 /**
  * SONY STORE - Supabase Browser Client & Data Wrappers
- * Project URL: https://qwhtumvoyhoslbbnvwzf.supabase.co
- * Uses the Supabase Publishable (Anon) Key. Zero service-role or secret keys exposed.
- * Provides real-time Database & Auth wrappers with fallback to local state.
+ * Project URL: https://qwhtumvohyoslbbnvwzf.supabase.co
+ * Uses the Supabase Publishable (Anon) Key with auth configs: detectSessionInUrl, autoRefreshToken, persistSession.
  */
 
-const SUPABASE_URL = window.SUPABASE_URL || 'https://qwhtumvoyhoslbbnvwzf.supabase.co';
+const SUPABASE_URL = window.SUPABASE_URL || 'https://qwhtumvohyoslbbnvwzf.supabase.co';
 
 // Configurable Supabase Publishable (Anon) Key
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3aHR1bXZveWhvc2xiYm52d3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1MDY0MDAsImV4cCI6MjA1NDA4MjQwMH0.placeholder-publishable-key';
@@ -17,7 +16,13 @@ function getSupabaseClient() {
         try {
             const url = window.SUPABASE_URL || SUPABASE_URL;
             const key = window.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY;
-            supabaseClient = supabase.createClient(url, key);
+            supabaseClient = supabase.createClient(url, key, {
+                auth: {
+                    detectSessionInUrl: true,
+                    autoRefreshToken: true,
+                    persistSession: true
+                }
+            });
             window.supabaseClient = supabaseClient;
         } catch (e) {
             console.warn('Supabase initialization fallback:', e);

@@ -85,7 +85,7 @@ async function signInWithGoogle() {
             throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
 
-        const redirectTarget = window.location.origin + '/login.html';
+        const redirectTarget = 'https://sonywatchstore.netlify.app';
         console.log('[DEBUG] signInWithOAuth started with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
@@ -255,17 +255,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.warn('Profile sync notice:', e.message || e);
                         }
 
-                        // Auto redirect customer to target account page upon successful SIGNED_IN
-                        if (event === 'SIGNED_IN' || window.location.hash.includes('access_token') || window.location.pathname.endsWith('login.html')) {
-                            const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                            const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
-                            
-                            // Clean hash from location bar
+                        // Clean up URL hash if returning from OAuth redirect with access_token
+                        if (window.location.hash.includes('access_token')) {
                             if (window.history && window.history.replaceState) {
                                 window.history.replaceState(null, null, window.location.pathname);
                             }
-                            
-                            console.log('[DEBUG] Redirecting authenticated customer to:', targetPage);
+                        }
+
+                        // Clean redirection to main page upon SIGNED_IN event
+                        if (event === 'SIGNED_IN' || window.location.pathname.endsWith('login.html')) {
+                            const targetPage = 'index.html';
+                            console.log('[DEBUG] Redirecting authenticated customer to main page:', targetPage);
                             window.location.href = targetPage;
                         }
                     }
