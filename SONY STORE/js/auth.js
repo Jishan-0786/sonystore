@@ -1,6 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Single Source of Truth Session Management & Automatic Profile Creation for Supabase Auth.
+ * Single Source of Truth Session Management for Supabase Auth & Google OAuth (PKCE & Implicit).
+ * Dynamic Domain Resolution: Works on Cloudflare Pages, Netlify, localhost, and custom domains.
  */
 
 // Global active user state
@@ -88,6 +89,13 @@ function requireCustomerAuth(redirectUrl) {
 async function signInWithGoogle() {
     console.log('[DEBUG] Google button clicked');
 
+    const existingUser = getLoggedInUser();
+    if (existingUser) {
+        console.log('[DEBUG] User is already logged in. Navigating to account.');
+        window.location.href = 'account.html';
+        return;
+    }
+
     const btn = document.getElementById('googleAuthBtn');
     const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
     const errorBox = document.getElementById('googleAuthErrorBox');
@@ -113,10 +121,14 @@ async function signInWithGoogle() {
             throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
 
+        // Dynamic domain resolution (works for Cloudflare Pages, Netlify, localhost)
+        const redirectTarget = window.location.origin + '/login.html';
+        console.log('[DEBUG] Dynamic OAuth redirectTo target:', redirectTarget);
+
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: 'https://sonywatchstore.netlify.app'
+                redirectTo: redirectTarget
             }
         });
 
@@ -197,7 +209,7 @@ async function syncSupabaseSessionUser(user) {
     });
 
     // 1. Check if user profile row exists in Supabase profiles table
-    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.window.supabaseClient || null);
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
     if (client) {
         try {
             const { data: existingProfile, error: fetchErr } = await client
@@ -241,7 +253,7 @@ async function syncSupabaseSessionUser(user) {
     updateAuthUI();
 }
 
-// Update Header Navigation Authentication Link (LOGIN vs ACCOUNT)
+// Update Header Navigation Authentication Link (LOGIN vs PROFILE)
 function updateAuthUI() {
     const user = getLoggedInUser();
     const navs = document.querySelectorAll('#mainNav, .main-nav');
@@ -296,6 +308,11 @@ async function initAuthSystem() {
     if (googleBtn) {
         googleBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            const existingUser = getLoggedInUser();
+            if (existingUser) {
+                window.location.href = 'account.html';
+                return;
+            }
             signInWithGoogle();
         });
     }
@@ -324,7 +341,7 @@ async function initAuthSystem() {
                     }
                 }
 
-                // Session Check on Page Load
+                // 4. Session Check on Page Load
                 const { data: { session } } = await client.auth.getSession();
                 console.log("CURRENT SESSION:", session);
 
@@ -344,7 +361,7 @@ async function initAuthSystem() {
                     resetGoogleButtonState();
                 }
 
-                // Complete Session Listener & Loop Fix
+                // 3. Complete Session Listener & Loop Fix
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.log("AUTH EVENT:", event, session);
 
