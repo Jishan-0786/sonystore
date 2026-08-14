@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * Dynamically transforms /login into a luxury PROFILE PAGE upon authentication.
+ * In-Place UI Transformation on /login (showLogin vs showProfile).
  */
 
 // Global active user state & original DOM template cache
@@ -78,7 +78,7 @@ async function logoutUser() {
     
     updateNavbarAuthState(null);
     if (isLoginPage()) {
-        showLoginPage();
+        showLogin();
     }
     if (typeof showToast === 'function') showToast('Logged out successfully', '👋');
 }
@@ -101,7 +101,7 @@ async function signInWithGoogle() {
     if (existingUser) {
         console.error('[AUTH] User is already logged in. Showing profile.');
         if (isLoginPage()) {
-            showProfilePage(existingUser);
+            showProfile(existingUser);
         } else {
             window.location.href = 'account.html';
         }
@@ -270,9 +270,9 @@ async function syncSupabaseSessionUser(user) {
     }
 }
 
-// Render Unauthenticated Login Page UI
-function showLoginPage() {
-    console.error('[AUTH] Displaying Login Page UI on /login');
+// showLogin: Displays the existing login UI in the same container
+function showLogin() {
+    console.error('[AUTH] Running showLogin()');
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
 
@@ -294,9 +294,9 @@ function showLoginPage() {
     }
 }
 
-// Render Authenticated Full Profile Page UI In-Place on /login
-function showProfilePage(user) {
-    console.error('[AUTH] Displaying Full Profile Page UI on /login for user:', user);
+// showProfile: Hides login UI and creates/displays Profile UI in the same container
+function showProfile(user) {
+    console.log("AUTHENTICATED USER:", user);
 
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
@@ -311,10 +311,10 @@ function showProfilePage(user) {
     card.style.padding = '40px 30px';
 
     card.innerHTML = `
-        <div class="profile-page-view" style="text-align: left;">
-            <!-- VIP MEMBER HEADER CARD -->
+        <div class="profile-dashboard-view" style="text-align: left;">
+            <!-- PROFILE HEADER -->
             <div style="display: flex; align-items: center; gap: 24px; padding-bottom: 28px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap;">
-                <div style="width: 90px; height: 90px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--gold-light); flex-shrink: 0; box-shadow: 0 0 15px var(--gold-glow);">
+                <div style="width: 84px; height: 84px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--gold-light); flex-shrink: 0; box-shadow: 0 0 15px var(--gold-glow);">
                     ${userAvatar ? `<img src="${userAvatar}" alt="${userName}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
                 </div>
                 <div style="flex-grow: 1;">
@@ -333,53 +333,46 @@ function showProfilePage(user) {
             </div>
 
             <!-- PROFILE DASHBOARD GRID -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 28px;">
                 
-                <!-- MY ORDERS CARD -->
+                <!-- MY ORDERS -->
                 <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <div style="font-size: 1.8rem; margin-bottom: 8px;">📦</div>
-                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">MY ORDERS</h4>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">View order history, shipment status & track your luxury watch deliveries.</p>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">My Orders</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">View order history & track deliveries.</p>
                     </div>
                     <a href="orders.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">View Orders →</a>
                 </div>
 
-                <!-- WISHLIST CARD -->
+                <!-- WISHLIST -->
                 <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <div style="font-size: 1.8rem; margin-bottom: 8px;">♥</div>
-                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">SAVED WISHLIST</h4>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Access your saved luxury timepieces and quick-add to shopping bag.</p>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">Wishlist</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Access saved luxury timepieces.</p>
                     </div>
-                    <a href="wishlist.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Explore Wishlist →</a>
+                    <a href="wishlist.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Saved Items →</a>
                 </div>
 
-                <!-- SAVED ADDRESSES CARD -->
-                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 1.8rem; margin-bottom: 8px;">📍</div>
-                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">SAVED ADDRESSES</h4>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Primary Delivery Address:</p>
-                        <p style="color: #fff; font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4;">Kathmandu, Bagmati Province<br>Nepal (Insured Express Delivery)</p>
-                    </div>
-                    <a href="account.html" class="account-nav-btn" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem; margin: 0;">Manage Addresses</a>
-                </div>
-
-                <!-- ACCOUNT SETTINGS CARD -->
+                <!-- ACCOUNT SETTINGS -->
                 <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <div style="font-size: 1.8rem; margin-bottom: 8px;">⚙️</div>
-                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">ACCOUNT SETTINGS</h4>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Google OAuth connected. Security & notification preferences active.</p>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">Account Settings</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Security & profile preferences.</p>
                     </div>
-                    <button onclick="showToast('Account security settings up to date', '🔒')" class="account-nav-btn" style="padding: 10px; width: 100%; text-align: center; font-size: 0.85rem; margin: 0;">Security Overview</button>
+                    <button onclick="showToast('Security settings active', '🔒')" class="account-nav-btn" style="padding: 10px; width: 100%; text-align: center; font-size: 0.85rem; margin: 0;">Settings Overview</button>
                 </div>
 
             </div>
         </div>
     `;
 }
+
+// Aliases for compatibility
+const showLoginPage = showLogin;
+const showProfilePage = showProfile;
 
 // Single Reusable Function to Update Navbar Authentication State
 function updateNavbarAuthState(session) {
@@ -443,9 +436,9 @@ function updateNavbarAuthState(session) {
 
     if (isLoginPage()) {
         if (user) {
-            showProfilePage(user);
+            showProfile(user);
         } else {
-            showLoginPage();
+            showLogin();
         }
     }
 }
@@ -473,7 +466,7 @@ async function initAuthSystem() {
             const existingUser = getLoggedInUser();
             if (existingUser) {
                 if (isLoginPage()) {
-                    showProfilePage(existingUser);
+                    showProfile(existingUser);
                 } else {
                     window.location.href = 'account.html';
                 }
@@ -491,67 +484,54 @@ async function initAuthSystem() {
                 const authCode = urlParams.get('code');
                 const hasHashToken = window.location.hash.includes('access_token');
 
-                if (authCode || hasHashToken) {
-                    console.error('[AUTH] OAuth callback detected:', { codePresent: Boolean(authCode), hashPresent: hasHashToken });
-                }
-
                 if (authCode && typeof client.auth.exchangeCodeForSession === 'function') {
-                    console.error('[AUTH] Exchanging OAuth code...');
                     try {
-                        const { data: exchangeData, error: exchangeErr } = await client.auth.exchangeCodeForSession(authCode);
-                        console.error('[AUTH] exchangeCodeForSession result:', { success: Boolean(exchangeData), error: exchangeErr });
-                        if (exchangeErr) {
-                            console.error('[AUTH] exchangeCodeForSession error:', exchangeErr.message || exchangeErr);
-                        }
+                        await client.auth.exchangeCodeForSession(authCode);
                     } catch (codeErr) {
                         console.error('[AUTH] exchangeCodeForSession exception:', codeErr);
                     }
                 }
 
-                // 1. On every page load, run getSession()
+                // 1. On page load, fetch session
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
-                console.error('[AUTH] Session on page load:', session);
+                console.log("AUTHENTICATED USER:", session?.user);
 
                 if (sessionErr) {
                     console.error('[AUTH] getSession error:', sessionErr);
                 }
 
-                if (session && session.user) {
-                    console.error('[AUTH] User authenticated on page load:', session.user);
+                if (session?.user) {
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
                     updateNavbarAuthState(session);
                     if (isLoginPage()) {
-                        showProfilePage(session.user);
+                        showProfile(session.user);
                     }
                 } else {
-                    console.error('[AUTH] Session on page load: null');
                     updateNavbarAuthState(null);
                     if (isLoginPage()) {
-                        showLoginPage();
+                        showLogin();
                     }
                     resetGoogleButtonState();
                 }
 
                 // 2. Listen for authentication changes (onAuthStateChange)
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.error('[AUTH] Auth event:', event, session);
+                    console.log("AUTHENTICATED USER:", session?.user);
 
-                    if (event === 'SIGNED_IN' || (session && session.user && event === 'INITIAL_SESSION')) {
-                        console.error('[AUTH] SIGNED_IN event received. Rendering Profile Page:', session.user);
+                    if (session?.user) {
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
                         updateNavbarAuthState(session);
                         if (isLoginPage()) {
-                            showProfilePage(session.user);
+                            showProfile(session.user);
                         }
-                    } else if (event === 'SIGNED_OUT') {
-                        console.error('[AUTH] SIGNED_OUT event received. Restoring Login Page');
+                    } else {
                         currentAuthUser = null;
                         localStorage.removeItem('sony_store_user');
                         updateNavbarAuthState(null);
                         if (isLoginPage()) {
-                            showLoginPage();
+                            showLogin();
                         }
                         resetGoogleButtonState();
                     }
@@ -561,7 +541,7 @@ async function initAuthSystem() {
             console.error('[AUTH] Auth system init error:', e);
             updateNavbarAuthState(null);
             if (isLoginPage()) {
-                showLoginPage();
+                showLogin();
             }
             resetGoogleButtonState();
         }
