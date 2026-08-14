@@ -1,6 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Diagnostic Trailing Instrument for Supabase OAuth Callback & UI Transformation Pipeline.
+ * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
+ * Diagnostic Logging Instrumentation for Hash Session & getUser validation.
  */
 
 // Global active user state & original DOM template cache
@@ -63,7 +64,7 @@ function cleanUrlHash() {
 }
 
 async function logoutUser() {
-    console.log('[DEBUG 7] Logging out user...');
+    console.log('[AUTH] Logging out user...');
     currentAuthUser = null;
     localStorage.removeItem('sony_store_user');
     
@@ -482,24 +483,24 @@ async function initAuthSystem() {
                 const authCode = urlParams.get('code');
                 const hasHashToken = window.location.hash.includes('access_token');
 
-                console.log('[DEBUG 1] OAuth callback:', { authCodePresent: Boolean(authCode), hasHashToken, fullUrl: window.location.href });
-
-                if (authCode && typeof client.auth.exchangeCodeForSession === 'function') {
-                    console.log('[DEBUG 2] exchangeCodeForSession starting with code:', authCode);
-                    try {
-                        const { data: exchangeData, error: exchangeErr } = await client.auth.exchangeCodeForSession(authCode);
-                        console.log('[DEBUG 2] exchangeCodeForSession result:', { exchangeData, exchangeErr });
-                    } catch (codeErr) {
-                        console.log('[DEBUG 2] exchangeCodeForSession exception:', codeErr);
-                    }
-                } else {
-                    console.log('[DEBUG 2] exchangeCodeForSession skipped');
+                if (hasHashToken) {
+                    console.log('[SUPABASE] Hash session detected');
                 }
 
                 // 1. On every page load, fetch session
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
-                console.log('[DEBUG 3] getSession:', { session, sessionErr });
-                console.log('[DEBUG 4] session.user:', session?.user || null);
+                console.log('[SUPABASE] getSession result:', session ? session : null);
+
+                let userResult = null;
+                let userError = null;
+                try {
+                    const res = await client.auth.getUser();
+                    userResult = res.data?.user || null;
+                    userError = res.error ? (res.error.message || String(res.error)) : null;
+                } catch (uErr) {
+                    userError = uErr.message || String(uErr);
+                }
+                console.log('[SUPABASE] getUser result/error:', userError || (userResult ? userResult : null));
 
                 if (session?.user) {
                     currentAuthUser = session.user;
@@ -519,8 +520,7 @@ async function initAuthSystem() {
 
                 // 2. Listen for authentication changes (onAuthStateChange)
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.log('[DEBUG 3] getSession/onAuthStateChange event:', event);
-                    console.log('[DEBUG 4] session.user:', session?.user || null);
+                    console.log('[SUPABASE] getSession result:', session ? session : null);
 
                     if (session?.user) {
                         currentAuthUser = session.user;

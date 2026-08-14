@@ -9,6 +9,11 @@ const SUPABASE_URL = window.SUPABASE_URL || 'https://qwhtumvohyoslbbnvwzf.supaba
 // Configurable Supabase Publishable (Anon) Key
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3aHR1bXZvaHlvc2xiYm52d3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1MDY0MDAsImV4cCI6MjA1NDA4MjQwMH0.placeholder-publishable-key';
 
+const extractedProjectRef = (SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/) || [])[1] || 'unknown';
+
+console.log('[SUPABASE] URL:', SUPABASE_URL);
+console.log('[SUPABASE] Project ref:', extractedProjectRef);
+
 let supabaseClient = null;
 
 function getSupabaseClient() {
@@ -16,15 +21,17 @@ function getSupabaseClient() {
         try {
             const url = window.SUPABASE_URL || SUPABASE_URL;
             const key = window.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY;
-            console.error('[DEBUG LOG] Initializing Supabase Client with URL:', url);
+            
             supabaseClient = supabase.createClient(url, key, {
                 auth: {
                     detectSessionInUrl: true,
                     persistSession: true,
-                    autoRefreshToken: true
+                    autoRefreshToken: true,
+                    flowType: 'implicit'
                 }
             });
             window.supabaseClient = supabaseClient;
+            console.log('[SUPABASE] Auth client initialized');
         } catch (e) {
             console.warn('Supabase initialization fallback:', e);
         }
