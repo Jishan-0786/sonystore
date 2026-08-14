@@ -1,7 +1,6 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * In-Place UI Transformation on /login (showLogin vs showProfile).
+ * Diagnostic Trailing Instrument for Supabase OAuth Callback & UI Transformation Pipeline.
  */
 
 // Global active user state & original DOM template cache
@@ -64,7 +63,7 @@ function cleanUrlHash() {
 }
 
 async function logoutUser() {
-    console.error('[AUTH] Logging out user...');
+    console.log('[DEBUG 7] Logging out user...');
     currentAuthUser = null;
     localStorage.removeItem('sony_store_user');
     
@@ -95,11 +94,11 @@ function requireCustomerAuth(redirectUrl) {
 
 // Google OAuth Integration using existing Supabase client
 async function signInWithGoogle() {
-    console.error('[AUTH] Google sign-in start', { origin: window.location.origin });
+    console.log('[DEBUG 1] Google sign-in start', { origin: window.location.origin });
 
     const existingUser = getLoggedInUser();
     if (existingUser) {
-        console.error('[AUTH] User is already logged in. Showing profile.');
+        console.log('[DEBUG 6] User already logged in. Showing profile.');
         if (isLoginPage()) {
             showProfile(existingUser);
         } else {
@@ -131,12 +130,12 @@ async function signInWithGoogle() {
 
         if (!client || !client.auth) {
             const noClientErr = new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
-            console.error('[AUTH] Google sign-in start error:', noClientErr);
+            console.error('[DEBUG 1] Google sign-in start error:', noClientErr);
             throw noClientErr;
         }
 
         const redirectTarget = window.location.origin + '/login';
-        console.error('[AUTH] Calling signInWithOAuth with redirectTo:', redirectTarget);
+        console.log('[DEBUG 1] Calling signInWithOAuth with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
@@ -145,20 +144,20 @@ async function signInWithGoogle() {
             }
         });
 
-        console.error('[AUTH] signInWithOAuth result:', { hasUrl: Boolean(data?.url), error });
+        console.log('[DEBUG 1] signInWithOAuth result:', { hasUrl: Boolean(data?.url), error });
 
         if (error) {
-            console.error('[AUTH] signInWithOAuth returned error:', error);
+            console.error('[DEBUG 1] signInWithOAuth returned error:', error);
             throw error;
         }
 
         if (data && data.url) {
-            console.error('[AUTH] Navigating browser to OAuth authorization URL:', data.url);
+            console.log('[DEBUG 1] Navigating browser to OAuth authorization URL:', data.url);
             window.location.href = data.url;
         }
 
     } catch (err) {
-        console.error('[AUTH] Google sign-in start exception caught:', err);
+        console.error('[DEBUG 1] Google sign-in exception caught:', err);
         resetGoogleButtonState();
 
         const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
@@ -212,13 +211,12 @@ async function signUpWithSupabaseEmail(email, password, phone, name) {
 
 // Synchronize Supabase User Object & Create Profile if Missing
 async function syncSupabaseSessionUser(user) {
+    console.log('[DEBUG 5] syncSupabaseSessionUser starting for user:', user?.id || null);
     if (!user) return;
 
     const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '';
     const userPhone = user.user_metadata?.phone || '+977 9800000000';
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
-
-    console.error('[AUTH] Syncing user profile:', { userId: user.id, email: user.email, name: userName });
 
     setLoggedInUser({
         id: user.id,
@@ -239,11 +237,11 @@ async function syncSupabaseSessionUser(user) {
                 .maybeSingle();
 
             if (fetchErr) {
-                console.error('[AUTH] Error checking existing profile:', fetchErr.message || fetchErr);
+                console.error('[DEBUG 5] Error checking existing profile:', fetchErr.message || fetchErr);
             }
 
             if (!existingProfile) {
-                console.error('[AUTH] Creating new profile for user ID:', user.id);
+                console.log('[DEBUG 5] Creating new profile row for user ID:', user.id);
                 const { data: insertedProfile, error: insertErr } = await client
                     .from('profiles')
                     .insert([{
@@ -257,22 +255,23 @@ async function syncSupabaseSessionUser(user) {
                     }]);
 
                 if (insertErr) {
-                    console.error('[AUTH] Error inserting new profile:', insertErr.message || insertErr);
+                    console.error('[DEBUG 5] Error inserting new profile:', insertErr.message || insertErr);
                 } else {
-                    console.error('[AUTH] Profile created successfully:', insertedProfile);
+                    console.log('[DEBUG 5] Profile row created successfully:', insertedProfile);
                 }
             } else {
-                console.error('[AUTH] Profile already exists for user ID:', user.id);
+                console.log('[DEBUG 5] Profile row already exists for user ID:', user.id);
             }
         } catch (e) {
-            console.error('[AUTH] Exception during profile check/creation:', e.message || e);
+            console.error('[DEBUG 5] Exception during profile check/creation:', e.message || e);
         }
     }
+    console.log('[DEBUG 5] syncSupabaseSessionUser completed');
 }
 
 // showLogin: Displays the existing login UI in the same container
 function showLogin() {
-    console.error('[AUTH] Running showLogin()');
+    console.log('[DEBUG 6] showLogin CALLED');
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
 
@@ -296,10 +295,9 @@ function showLogin() {
 
 // showProfile: Hides login UI and creates/displays Profile UI in the same container
 function showProfile(user) {
-    console.log('[AUTH] USER:', user);
-    console.log('[AUTH] SHOWING PROFILE:', !!user);
-
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
+    console.log('[DEBUG 6] showProfile CALLED:', { userId: user?.id || null, cardExists: Boolean(card), isLoginPage: isLoginPage() });
+
     if (!card) return;
 
     const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
@@ -378,6 +376,8 @@ const showProfilePage = showProfile;
 // Single Reusable Function to Update Navbar Authentication State
 function updateNavbarAuthState(session) {
     const user = session ? session.user : null;
+    console.log('[DEBUG 7] updateNavbarAuthState:', { sessionPresent: Boolean(session), user: user ? (user.email || user.id) : null });
+
     const navs = document.querySelectorAll('#mainNav, .main-nav');
 
     navs.forEach(nav => {
@@ -482,23 +482,24 @@ async function initAuthSystem() {
                 const authCode = urlParams.get('code');
                 const hasHashToken = window.location.hash.includes('access_token');
 
+                console.log('[DEBUG 1] OAuth callback:', { authCodePresent: Boolean(authCode), hasHashToken, fullUrl: window.location.href });
+
                 if (authCode && typeof client.auth.exchangeCodeForSession === 'function') {
+                    console.log('[DEBUG 2] exchangeCodeForSession starting with code:', authCode);
                     try {
-                        await client.auth.exchangeCodeForSession(authCode);
+                        const { data: exchangeData, error: exchangeErr } = await client.auth.exchangeCodeForSession(authCode);
+                        console.log('[DEBUG 2] exchangeCodeForSession result:', { exchangeData, exchangeErr });
                     } catch (codeErr) {
-                        console.error('[AUTH] exchangeCodeForSession exception:', codeErr);
+                        console.log('[DEBUG 2] exchangeCodeForSession exception:', codeErr);
                     }
+                } else {
+                    console.log('[DEBUG 2] exchangeCodeForSession skipped');
                 }
 
                 // 1. On every page load, fetch session
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
-                console.log('[AUTH] SESSION:', session);
-                console.log('[AUTH] USER:', session?.user);
-                console.log('[AUTH] SHOWING PROFILE:', !!session?.user);
-
-                if (sessionErr) {
-                    console.error('[AUTH] getSession error:', sessionErr);
-                }
+                console.log('[DEBUG 3] getSession:', { session, sessionErr });
+                console.log('[DEBUG 4] session.user:', session?.user || null);
 
                 if (session?.user) {
                     currentAuthUser = session.user;
@@ -518,9 +519,8 @@ async function initAuthSystem() {
 
                 // 2. Listen for authentication changes (onAuthStateChange)
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.log('[AUTH] SESSION:', session);
-                    console.log('[AUTH] USER:', session?.user);
-                    console.log('[AUTH] SHOWING PROFILE:', !!session?.user);
+                    console.log('[DEBUG 3] getSession/onAuthStateChange event:', event);
+                    console.log('[DEBUG 4] session.user:', session?.user || null);
 
                     if (session?.user) {
                         currentAuthUser = session.user;
