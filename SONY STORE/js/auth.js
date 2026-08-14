@@ -49,6 +49,14 @@ function resetGoogleButtonState() {
     }
 }
 
+function cleanUrlHash() {
+    if (window.location.hash || window.location.search.includes('code=')) {
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+}
+
 async function logoutUser() {
     currentAuthUser = null;
     localStorage.removeItem('sony_store_user');
@@ -83,7 +91,6 @@ async function signInWithGoogle() {
     const btn = document.getElementById('googleAuthBtn');
     const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
     const errorBox = document.getElementById('googleAuthErrorBox');
-    const originalText = 'Continue with Google';
 
     if (errorBox) {
         errorBox.style.display = 'none';
@@ -106,12 +113,10 @@ async function signInWithGoogle() {
             throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
         }
 
-        const redirectTarget = 'https://sonywatchstore.netlify.app/login.html';
-
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: redirectTarget
+                redirectTo: 'https://sonywatchstore.netlify.app'
             }
         });
 
@@ -294,7 +299,7 @@ async function initAuthSystem() {
                     }
                 }
 
-                // Query session after exchange
+                // 4. Session Check on Page Load
                 const { data: { session } } = await client.auth.getSession();
                 console.log("CURRENT SESSION:", session);
 
@@ -302,19 +307,11 @@ async function initAuthSystem() {
                     console.log('Session restored');
                     console.log('User ID exists');
                     await syncSupabaseSessionUser(session.user);
+                    cleanUrlHash();
 
-                    // Clean up URL query parameters (?code=...) or hash fragment
-                    if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
-                        if (window.history && window.history.replaceState) {
-                            const cleanUrl = window.location.origin + window.location.pathname;
-                            window.history.replaceState(null, null, cleanUrl);
-                        }
-                    }
-
-                    // Redirect to account.html if user is on login page
                     if (window.location.pathname.endsWith('login.html')) {
                         const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                        const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'index.html';
                         window.location.href = targetPage;
                         return;
                     }
@@ -322,18 +319,19 @@ async function initAuthSystem() {
                     resetGoogleButtonState();
                 }
 
-                // Register Auth Event Listener
+                // 3. Complete Session Listener & Loop Fix (CRITICAL)
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.log("AUTH EVENT:", event, session);
 
-                    if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+                    if (event === 'SIGNED_IN' || (session && session.user && event === 'INITIAL_SESSION')) {
                         console.log('Session restored');
                         console.log('User ID exists');
                         await syncSupabaseSessionUser(session.user);
+                        cleanUrlHash();
 
                         if (window.location.pathname.endsWith('login.html')) {
                             const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                            const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                            const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'index.html';
                             window.location.href = targetPage;
                         }
                     } else if (event === 'SIGNED_OUT') {
