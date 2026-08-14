@@ -98,13 +98,13 @@
             <div class="account-grid">
                 
                 <!-- SIDEBAR NAV -->
-                <div class="glass-panel account-sidebar">
-                    <div style="text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle);">
-                        <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;" id="avatarInitial">
+                <div class="glass-panel account-                    <div style="text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle);">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; overflow: hidden;" id="avatarInitial">
                             👤
                         </div>
                         <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem;" id="accUserName">Valued Client</h4>
-                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" id="accUserPhone">+977 XXXXXXXXXX</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" id="accUserEmail"></div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;" id="accUserPhone"></div>
                         <span class="stock-badge in-stock" style="margin-top: 10px; display: inline-block;">VIP Verified</span>
                     </div>
 
@@ -229,7 +229,7 @@
                 <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- JS SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -247,8 +247,12 @@
 
             const user = getLoggedInUser();
             if (user) {
-                document.getElementById('accUserPhone').textContent = user.email ? `Email: ${user.email}` : (user.phone || '+977 VIP Client');
                 document.getElementById('accUserName').textContent = user.name || 'Valued Client';
+                const emailElem = document.getElementById('accUserEmail');
+                if (emailElem) emailElem.textContent = user.email ? `Email: ${user.email}` : '';
+                const phoneElem = document.getElementById('accUserPhone');
+                if (phoneElem) phoneElem.textContent = user.phone ? `Phone: ${user.phone}` : '';
+
                 const avatarElem = document.getElementById('avatarInitial');
                 if (avatarElem) {
                     if (user.avatar) {
