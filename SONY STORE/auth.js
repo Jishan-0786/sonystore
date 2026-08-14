@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * In-Place Login Page Update: On returning to /login, stays on /login and immediately changes navbar LOGIN -> PROFILE.
+ * Strict Session-Driven UI State (LOGIN vs PROFILE 👤).
  */
 
 // Global active user state
@@ -39,7 +39,6 @@ function setLoggedInUser(user) {
     };
     currentAuthUser = userData;
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
-    updateAuthUI();
 }
 
 function resetGoogleButtonState() {
@@ -64,16 +63,19 @@ function cleanUrlHash() {
 }
 
 async function logoutUser() {
+    console.error('[AUTH] Logging out user...');
     currentAuthUser = null;
     localStorage.removeItem('sony_store_user');
     
     if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
         try {
             await getSupabaseClient().auth.signOut();
-        } catch (e) {}
+        } catch (e) {
+            console.error('[AUTH] signOut error:', e);
+        }
     }
     
-    updateAuthUI();
+    updateNavbarAuthState(null);
     if (typeof showToast === 'function') showToast('Logged out successfully', '👋');
     setTimeout(() => {
         window.location.href = 'index.html';
@@ -92,11 +94,11 @@ function requireCustomerAuth(redirectUrl) {
 
 // Google OAuth Integration using existing Supabase client
 async function signInWithGoogle() {
-    console.error('[DEBUG LOG] Google sign-in start', { origin: window.location.origin });
+    console.error('[AUTH] Google sign-in start', { origin: window.location.origin });
 
     const existingUser = getLoggedInUser();
     if (existingUser) {
-        console.error('[DEBUG LOG] User is already logged in. Navigating to account.');
+        console.error('[AUTH] User is already logged in. Navigating to account.');
         window.location.href = 'account.html';
         return;
     }
@@ -124,12 +126,12 @@ async function signInWithGoogle() {
 
         if (!client || !client.auth) {
             const noClientErr = new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
-            console.error('[DEBUG LOG] Google sign-in start error:', noClientErr);
+            console.error('[AUTH] Google sign-in start error:', noClientErr);
             throw noClientErr;
         }
 
         const redirectTarget = window.location.origin + '/login';
-        console.error('[DEBUG LOG] Calling signInWithOAuth with redirectTo:', redirectTarget);
+        console.error('[AUTH] Calling signInWithOAuth with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
@@ -138,20 +140,20 @@ async function signInWithGoogle() {
             }
         });
 
-        console.error('[DEBUG LOG] signInWithOAuth result:', { hasUrl: Boolean(data?.url), error });
+        console.error('[AUTH] signInWithOAuth result:', { hasUrl: Boolean(data?.url), error });
 
         if (error) {
-            console.error('[DEBUG LOG] signInWithOAuth returned error:', error);
+            console.error('[AUTH] signInWithOAuth returned error:', error);
             throw error;
         }
 
         if (data && data.url) {
-            console.error('[DEBUG LOG] Navigating browser to OAuth authorization URL:', data.url);
+            console.error('[AUTH] Navigating browser to OAuth authorization URL:', data.url);
             window.location.href = data.url;
         }
 
     } catch (err) {
-        console.error('[DEBUG LOG] Google sign-in start exception caught:', err);
+        console.error('[AUTH] Google sign-in start exception caught:', err);
         resetGoogleButtonState();
 
         const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
@@ -211,7 +213,7 @@ async function syncSupabaseSessionUser(user) {
     const userPhone = user.user_metadata?.phone || '+977 9800000000';
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
 
-    console.error('[DEBUG LOG] Profile loading:', { userId: user.id, email: user.email, name: userName });
+    console.error('[AUTH] Syncing user profile:', { userId: user.id, email: user.email, name: userName });
 
     setLoggedInUser({
         id: user.id,
@@ -222,7 +224,6 @@ async function syncSupabaseSessionUser(user) {
         provider: user.app_metadata?.provider || 'google'
     });
 
-    // Check if user profile row exists in Supabase profiles table
     const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
     if (client) {
         try {
@@ -233,11 +234,11 @@ async function syncSupabaseSessionUser(user) {
                 .maybeSingle();
 
             if (fetchErr) {
-                console.error('[DEBUG LOG] Error checking existing profile:', fetchErr.message || fetchErr);
+                console.error('[AUTH] Error checking existing profile:', fetchErr.message || fetchErr);
             }
 
             if (!existingProfile) {
-                console.error('[DEBUG LOG] Creating new profile for user ID:', user.id);
+                console.error('[AUTH] Creating new profile for user ID:', user.id);
                 const { data: insertedProfile, error: insertErr } = await client
                     .from('profiles')
                     .insert([{
@@ -251,19 +252,17 @@ async function syncSupabaseSessionUser(user) {
                     }]);
 
                 if (insertErr) {
-                    console.error('[DEBUG LOG] Error inserting new profile:', insertErr.message || insertErr);
+                    console.error('[AUTH] Error inserting new profile:', insertErr.message || insertErr);
                 } else {
-                    console.error('[DEBUG LOG] Profile created successfully:', insertedProfile);
+                    console.error('[AUTH] Profile created successfully:', insertedProfile);
                 }
             } else {
-                console.error('[DEBUG LOG] Profile already exists for user ID:', user.id);
+                console.error('[AUTH] Profile already exists for user ID:', user.id);
             }
         } catch (e) {
-            console.error('[DEBUG LOG] Exception during profile check/creation:', e.message || e);
+            console.error('[AUTH] Exception during profile check/creation:', e.message || e);
         }
     }
-
-    updateAuthUI();
 }
 
 // Render Login Page In-Place Card State
@@ -273,7 +272,11 @@ function renderLoginPageState(user) {
 
     let loggedInBox = document.getElementById('loginPageAuthenticatedBox');
 
-    if (user && user.loggedIn) {
+    if (user) {
+        const displayName = user.name || user.user_metadata?.full_name || user.email || 'Valued Client';
+        const displayEmail = user.email || '';
+        const displayAvatar = user.avatar || user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+
         if (!loggedInBox) {
             loggedInBox = document.createElement('div');
             loggedInBox.id = 'loginPageAuthenticatedBox';
@@ -283,10 +286,10 @@ function renderLoginPageState(user) {
         loggedInBox.innerHTML = `
             <div style="text-align: center; padding: 24px 12px;">
                 <div style="width: 76px; height: 76px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; overflow: hidden; border: 2px solid var(--gold-light);">
-                    ${user.avatar ? `<img src="${user.avatar}" alt="${user.name}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
+                    ${displayAvatar ? `<img src="${displayAvatar}" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
                 </div>
-                <h3 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.4rem; margin-bottom: 6px;">Welcome Back, ${user.name || 'Valued Client'}</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 8px;">${user.email ? user.email : ''}</p>
+                <h3 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.4rem; margin-bottom: 6px;">Welcome Back, ${displayName}</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 8px;">${displayEmail}</p>
                 <span class="stock-badge in-stock" style="margin-bottom: 24px; display: inline-block;">✓ Authenticated Session</span>
                 <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 16px;">
                     <a href="account.html" class="btn-primary" style="padding: 12px 28px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
@@ -313,13 +316,21 @@ function renderLoginPageState(user) {
     }
 }
 
-// Update Header Navigation Authentication Link (LOGIN vs PROFILE)
-function updateAuthUI() {
-    const user = getLoggedInUser();
+// Single Reusable Function to Update Navbar Authentication State
+function updateNavbarAuthState(session) {
+    const user = session ? session.user : null;
+    console.error('[AUTH] Updating navbar:', { sessionPresent: Boolean(session), user: user ? (user.email || user.id) : null });
+    console.error('[AUTH] User:', user);
+
     const navs = document.querySelectorAll('#mainNav, .main-nav');
-    
+
     navs.forEach(nav => {
-        let authLink = nav.querySelector('.nav-link-auth') || nav.querySelector('a[href="login.html"]') || nav.querySelector('a[href="login"]') || nav.querySelector('a[href="account.html"]');
+        let authLink = nav.querySelector('.nav-link-auth') || 
+                       nav.querySelector('a[href="login.html"]') || 
+                       nav.querySelector('a[href="login"]') || 
+                       nav.querySelector('a[href="/login"]') || 
+                       nav.querySelector('a[href="account.html"]');
+
         if (!authLink) {
             authLink = document.createElement('a');
             authLink.className = 'nav-link nav-link-auth';
@@ -328,20 +339,22 @@ function updateAuthUI() {
             authLink.classList.add('nav-link-auth');
         }
 
-        if (user && user.loggedIn) {
+        if (user) {
+            // User is authenticated via Supabase session -> Show PROFILE
+            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'PROFILE';
+            const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+
             authLink.href = 'account.html';
             authLink.style.display = 'inline-flex';
             authLink.style.alignItems = 'center';
             authLink.style.gap = '6px';
+            authLink.title = `${userName} (${user.email || ''})`;
 
-            const displayName = user.name || user.email || 'Profile';
-            if (user.avatar) {
-                authLink.innerHTML = `<img src="${user.avatar}" alt="${displayName}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>Profile</span>`;
+            if (avatarUrl) {
+                authLink.innerHTML = `<img src="${avatarUrl}" alt="${userName}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>PROFILE</span>`;
             } else {
-                authLink.innerHTML = `👤 <span>Profile</span>`;
+                authLink.innerHTML = `👤 <span>PROFILE</span>`;
             }
-
-            authLink.title = `${displayName} (${user.email || ''})`;
 
             if (window.location.pathname.endsWith('account.html') || window.location.pathname.endsWith('orders.html')) {
                 authLink.classList.add('active');
@@ -349,8 +362,9 @@ function updateAuthUI() {
                 authLink.classList.remove('active');
             }
         } else {
+            // User is NOT authenticated -> Show LOGIN
             authLink.href = 'login.html';
-            authLink.innerHTML = 'Login';
+            authLink.innerHTML = 'LOGIN';
             authLink.style.display = 'inline-block';
             authLink.removeAttribute('title');
 
@@ -367,9 +381,16 @@ function updateAuthUI() {
     }
 }
 
+// Fallback compatibility wrapper
+function updateAuthUI() {
+    const user = getLoggedInUser();
+    const mockSession = user && user.loggedIn ? { user: { id: user.id, email: user.email, user_metadata: { full_name: user.name, avatar_url: user.avatar } } } : null;
+    updateNavbarAuthState(mockSession);
+}
+
 // Immediate Page Load & OAuth Return Handler
 async function initAuthSystem() {
-    // Render immediate local state
+    // Render immediate cached UI state
     updateAuthUI();
 
     // Attach Google OAuth button listener if present on page
@@ -395,54 +416,62 @@ async function initAuthSystem() {
                 const hasHashToken = window.location.hash.includes('access_token');
 
                 if (authCode || hasHashToken) {
-                    console.error('[DEBUG LOG] OAuth callback detected:', { codePresent: Boolean(authCode), hashPresent: hasHashToken });
+                    console.error('[AUTH] OAuth callback detected:', { codePresent: Boolean(authCode), hashPresent: hasHashToken });
                 }
 
                 if (authCode && typeof client.auth.exchangeCodeForSession === 'function') {
-                    console.error('[DEBUG LOG] Exchanging OAuth code...');
+                    console.error('[AUTH] Exchanging OAuth code...');
                     try {
                         const { data: exchangeData, error: exchangeErr } = await client.auth.exchangeCodeForSession(authCode);
-                        console.error('[DEBUG LOG] exchangeCodeForSession result:', { success: Boolean(exchangeData), error: exchangeErr });
+                        console.error('[AUTH] exchangeCodeForSession result:', { success: Boolean(exchangeData), error: exchangeErr });
                         if (exchangeErr) {
-                            console.error('[DEBUG LOG] exchangeCodeForSession error:', exchangeErr.message || exchangeErr);
+                            console.error('[AUTH] exchangeCodeForSession error:', exchangeErr.message || exchangeErr);
                         }
                     } catch (codeErr) {
-                        console.error('[DEBUG LOG] exchangeCodeForSession exception:', codeErr);
+                        console.error('[AUTH] exchangeCodeForSession exception:', codeErr);
                     }
                 }
 
-                // 1. Call getSession() on page load
+                // 1. On every page load, run getSession()
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
-                console.error('[DEBUG LOG] getSession result:', { hasSession: Boolean(session), userId: session?.user?.id || null, error: sessionErr });
+                console.error('[AUTH] Session on page load:', session);
+
+                if (sessionErr) {
+                    console.error('[AUTH] getSession error:', sessionErr);
+                }
 
                 if (session && session.user) {
-                    console.error('[DEBUG LOG] Session restored, user ID exists:', session.user.id);
+                    console.error('[AUTH] User authenticated on page load:', session.user);
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
-                    // User remains on the same page. Navbar is updated to PROFILE.
+                    updateNavbarAuthState(session);
                 } else {
+                    console.error('[AUTH] Session on page load: null');
+                    updateNavbarAuthState(null);
                     resetGoogleButtonState();
                 }
 
-                // 2. Listen for onAuthStateChange
+                // 2. Listen for authentication changes (onAuthStateChange)
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.error('[DEBUG LOG] Auth state change event:', { event, hasSession: Boolean(session), userId: session?.user?.id || null });
+                    console.error('[AUTH] Auth event:', event, session);
 
                     if (event === 'SIGNED_IN' || (session && session.user && event === 'INITIAL_SESSION')) {
-                        console.error('[DEBUG LOG] Session restored via auth state change:', session.user.id);
+                        console.error('[AUTH] SIGNED_IN event received. Updating navbar to PROFILE:', session.user);
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
-                        // User remains on the same page. Navbar is immediately updated to PROFILE.
+                        updateNavbarAuthState(session);
                     } else if (event === 'SIGNED_OUT') {
+                        console.error('[AUTH] SIGNED_OUT event received. Updating navbar to LOGIN');
                         currentAuthUser = null;
                         localStorage.removeItem('sony_store_user');
-                        updateAuthUI();
+                        updateNavbarAuthState(null);
                         resetGoogleButtonState();
                     }
                 });
             }
         } catch (e) {
-            console.error('[DEBUG LOG] Auth system init error:', e);
+            console.error('[AUTH] Auth system init error:', e);
+            updateNavbarAuthState(null);
             resetGoogleButtonState();
         }
     }
