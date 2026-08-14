@@ -296,13 +296,14 @@ function showLogin() {
 
 // showProfile: Hides login UI and creates/displays Profile UI in the same container
 function showProfile(user) {
-    console.log("AUTHENTICATED USER:", user);
+    console.log('[AUTH] USER:', user);
+    console.log('[AUTH] SHOWING PROFILE:', !!user);
 
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
 
     const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
-    const userEmail = user.email || '';
+    const userEmail = user.email || user.user_metadata?.email || '';
     const userAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
     const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
 
@@ -377,9 +378,6 @@ const showProfilePage = showProfile;
 // Single Reusable Function to Update Navbar Authentication State
 function updateNavbarAuthState(session) {
     const user = session ? session.user : null;
-    console.error('[AUTH] Updating navbar:', { sessionPresent: Boolean(session), user: user ? (user.email || user.id) : null });
-    console.error('[AUTH] User:', user);
-
     const navs = document.querySelectorAll('#mainNav, .main-nav');
 
     navs.forEach(nav => {
@@ -492,15 +490,18 @@ async function initAuthSystem() {
                     }
                 }
 
-                // 1. On page load, fetch session
+                // 1. On every page load, fetch session
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
-                console.log("AUTHENTICATED USER:", session?.user);
+                console.log('[AUTH] SESSION:', session);
+                console.log('[AUTH] USER:', session?.user);
+                console.log('[AUTH] SHOWING PROFILE:', !!session?.user);
 
                 if (sessionErr) {
                     console.error('[AUTH] getSession error:', sessionErr);
                 }
 
                 if (session?.user) {
+                    currentAuthUser = session.user;
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
                     updateNavbarAuthState(session);
@@ -517,9 +518,12 @@ async function initAuthSystem() {
 
                 // 2. Listen for authentication changes (onAuthStateChange)
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.log("AUTHENTICATED USER:", session?.user);
+                    console.log('[AUTH] SESSION:', session);
+                    console.log('[AUTH] USER:', session?.user);
+                    console.log('[AUTH] SHOWING PROFILE:', !!session?.user);
 
                     if (session?.user) {
+                        currentAuthUser = session.user;
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
                         updateNavbarAuthState(session);
