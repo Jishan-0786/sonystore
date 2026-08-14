@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Single Source of Truth Session Management for Supabase Auth & Google OAuth (PKCE & Implicit).
- * Dynamic Domain Resolution: Works on Cloudflare Pages, Netlify, localhost, and custom domains.
+ * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
+ * Detailed diagnostic logging for Google sign-in start, OAuth callback, getSession, auth state change, and profile loading.
  */
 
 // Global active user state
@@ -87,11 +87,11 @@ function requireCustomerAuth(redirectUrl) {
 
 // Google OAuth Integration using existing Supabase client
 async function signInWithGoogle() {
-    console.log('[DEBUG] Google button clicked');
+    console.error('[DEBUG LOG] Google sign-in start', { origin: window.location.origin });
 
     const existingUser = getLoggedInUser();
     if (existingUser) {
-        console.log('[DEBUG] User is already logged in. Navigating to account.');
+        console.error('[DEBUG LOG] User is already logged in. Navigating to account.');
         window.location.href = 'account.html';
         return;
     }
@@ -118,12 +118,13 @@ async function signInWithGoogle() {
         const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
 
         if (!client || !client.auth) {
-            throw new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
+            const noClientErr = new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
+            console.error('[DEBUG LOG] Google sign-in start error:', noClientErr);
+            throw noClientErr;
         }
 
-        // Dynamic domain resolution (works for Cloudflare Pages, Netlify, localhost)
         const redirectTarget = window.location.origin + '/login.html';
-        console.log('[DEBUG] Dynamic OAuth redirectTo target:', redirectTarget);
+        console.error('[DEBUG LOG] Calling signInWithOAuth with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
@@ -132,14 +133,20 @@ async function signInWithGoogle() {
             }
         });
 
-        if (error) throw error;
+        console.error('[DEBUG LOG] signInWithOAuth result:', { hasUrl: Boolean(data?.url), error });
+
+        if (error) {
+            console.error('[DEBUG LOG] signInWithOAuth returned error:', error);
+            throw error;
+        }
 
         if (data && data.url) {
+            console.error('[DEBUG LOG] Navigating browser to OAuth authorization URL:', data.url);
             window.location.href = data.url;
         }
 
     } catch (err) {
-        console.error('[DEBUG] signInWithOAuth exception caught:', err);
+        console.error('[DEBUG LOG] Google sign-in start exception caught:', err);
         resetGoogleButtonState();
 
         const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
@@ -199,6 +206,8 @@ async function syncSupabaseSessionUser(user) {
     const userPhone = user.user_metadata?.phone || '+977 9800000000';
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
 
+    console.error('[DEBUG LOG] Profile loading:', { userId: user.id, email: user.email, name: userName });
+
     setLoggedInUser({
         id: user.id,
         email: user.email,
@@ -219,12 +228,12 @@ async function syncSupabaseSessionUser(user) {
                 .maybeSingle();
 
             if (fetchErr) {
-                console.error('[DEBUG] Error checking existing profile:', fetchErr.message || fetchErr);
+                console.error('[DEBUG LOG] Error checking existing profile:', fetchErr.message || fetchErr);
             }
 
             // 2. If profile DOES NOT exist, automatically insert new profile row
             if (!existingProfile) {
-                console.log('[DEBUG] Profile does not exist. Creating new profile for user ID:', user.id);
+                console.error('[DEBUG LOG] Creating new profile for user ID:', user.id);
                 const { data: insertedProfile, error: insertErr } = await client
                     .from('profiles')
                     .insert([{
@@ -238,15 +247,15 @@ async function syncSupabaseSessionUser(user) {
                     }]);
 
                 if (insertErr) {
-                    console.error('[DEBUG] Error inserting new profile:', insertErr.message || insertErr);
+                    console.error('[DEBUG LOG] Error inserting new profile:', insertErr.message || insertErr);
                 } else {
-                    console.log('[DEBUG] Profile created successfully:', insertedProfile);
+                    console.error('[DEBUG LOG] Profile created successfully:', insertedProfile);
                 }
             } else {
-                console.log('[DEBUG] Profile already exists for user ID:', user.id);
+                console.error('[DEBUG LOG] Profile already exists for user ID:', user.id);
             }
         } catch (e) {
-            console.error('[DEBUG] Exception during profile check/creation:', e.message || e);
+            console.error('[DEBUG LOG] Exception during profile check/creation:', e.message || e);
         }
     }
 
@@ -326,28 +335,28 @@ async function initAuthSystem() {
                 const hasHashToken = window.location.hash.includes('access_token');
 
                 if (authCode || hasHashToken) {
-                    console.log('OAuth callback detected');
+                    console.error('[DEBUG LOG] OAuth callback detected:', { codePresent: Boolean(authCode), hashPresent: hasHashToken });
                 }
 
                 if (authCode && typeof client.auth.exchangeCodeForSession === 'function') {
-                    console.log('Exchanging OAuth code...');
+                    console.error('[DEBUG LOG] Exchanging OAuth code...');
                     try {
                         const { data: exchangeData, error: exchangeErr } = await client.auth.exchangeCodeForSession(authCode);
+                        console.error('[DEBUG LOG] exchangeCodeForSession result:', { success: Boolean(exchangeData), error: exchangeErr });
                         if (exchangeErr) {
-                            console.error('[DEBUG] exchangeCodeForSession error:', exchangeErr.message || exchangeErr);
+                            console.error('[DEBUG LOG] exchangeCodeForSession error:', exchangeErr.message || exchangeErr);
                         }
                     } catch (codeErr) {
-                        console.error('[DEBUG] exchangeCodeForSession exception:', codeErr);
+                        console.error('[DEBUG LOG] exchangeCodeForSession exception:', codeErr);
                     }
                 }
 
-                // 4. Session Check on Page Load
-                const { data: { session } } = await client.auth.getSession();
-                console.log("CURRENT SESSION:", session);
+                // getSession check
+                const { data: { session }, error: sessionErr } = await client.auth.getSession();
+                console.error('[DEBUG LOG] getSession result:', { hasSession: Boolean(session), userId: session?.user?.id || null, error: sessionErr });
 
                 if (session && session.user) {
-                    console.log('Session restored');
-                    console.log('User ID exists');
+                    console.error('[DEBUG LOG] Session restored, user ID exists:', session.user.id);
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
 
@@ -361,13 +370,12 @@ async function initAuthSystem() {
                     resetGoogleButtonState();
                 }
 
-                // 3. Complete Session Listener & Loop Fix
+                // Auth state change listener
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.log("AUTH EVENT:", event, session);
+                    console.error('[DEBUG LOG] Auth state change event:', { event, hasSession: Boolean(session), userId: session?.user?.id || null });
 
                     if (event === 'SIGNED_IN' || (session && session.user && event === 'INITIAL_SESSION')) {
-                        console.log('Session restored');
-                        console.log('User ID exists');
+                        console.error('[DEBUG LOG] Session restored via auth state change:', session.user.id);
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
 
@@ -385,7 +393,7 @@ async function initAuthSystem() {
                 });
             }
         } catch (e) {
-            console.warn('Auth system init notice:', e);
+            console.error('[DEBUG LOG] Auth system init error:', e);
             resetGoogleButtonState();
         }
     }
