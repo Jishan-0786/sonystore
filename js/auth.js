@@ -1,6 +1,6 @@
 /**
  * SONY STORE - Customer Authentication Engine
- * Single Source of Truth Session Management for Supabase Auth & Google OAuth (PKCE & Implicit).
+ * Single Source of Truth Session Management & Automatic Profile Creation for Supabase Auth.
  */
 
 // Global active user state
@@ -179,11 +179,11 @@ async function signUpWithSupabaseEmail(email, password, phone, name) {
     return { success: false, error: 'Supabase client not initialized.' };
 }
 
-// Synchronize Supabase User Object into Local Session & Profiles Table
+// Synchronize Supabase User Object & Create Profile if Missing
 async function syncSupabaseSessionUser(user) {
     if (!user) return;
 
-    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Valued Client';
+    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '';
     const userPhone = user.user_metadata?.phone || '+977 9800000000';
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
 
@@ -196,20 +196,45 @@ async function syncSupabaseSessionUser(user) {
         provider: user.app_metadata?.provider || 'google'
     });
 
-    // Create / Update user profile in Supabase profiles table without duplicates using user.id
-    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    // 1. Check if user profile row exists in Supabase profiles table
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.window.supabaseClient || null);
     if (client) {
         try {
-            await client.from('profiles').upsert([{
-                id: user.id,
-                email: user.email,
-                full_name: userName,
-                phone: userPhone,
-                avatar_url: avatarUrl,
-                updated_at: new Date().toISOString()
-            }], { onConflict: 'id' });
+            const { data: existingProfile, error: fetchErr } = await client
+                .from('profiles')
+                .select('id')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            if (fetchErr) {
+                console.error('[DEBUG] Error checking existing profile:', fetchErr.message || fetchErr);
+            }
+
+            // 2. If profile DOES NOT exist, automatically insert new profile row
+            if (!existingProfile) {
+                console.log('[DEBUG] Profile does not exist. Creating new profile for user ID:', user.id);
+                const { data: insertedProfile, error: insertErr } = await client
+                    .from('profiles')
+                    .insert([{
+                        id: user.id,
+                        email: user.email,
+                        full_name: userName,
+                        avatar_url: avatarUrl,
+                        phone: userPhone,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }]);
+
+                if (insertErr) {
+                    console.error('[DEBUG] Error inserting new profile:', insertErr.message || insertErr);
+                } else {
+                    console.log('[DEBUG] Profile created successfully:', insertedProfile);
+                }
+            } else {
+                console.log('[DEBUG] Profile already exists for user ID:', user.id);
+            }
         } catch (e) {
-            console.warn('Profile sync notice:', e.message || e);
+            console.error('[DEBUG] Exception during profile check/creation:', e.message || e);
         }
     }
 
@@ -299,7 +324,7 @@ async function initAuthSystem() {
                     }
                 }
 
-                // 4. Session Check on Page Load
+                // Session Check on Page Load
                 const { data: { session } } = await client.auth.getSession();
                 console.log("CURRENT SESSION:", session);
 
@@ -319,7 +344,7 @@ async function initAuthSystem() {
                     resetGoogleButtonState();
                 }
 
-                // 3. Complete Session Listener & Loop Fix (CRITICAL)
+                // Complete Session Listener & Loop Fix
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.log("AUTH EVENT:", event, session);
 
