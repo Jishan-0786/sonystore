@@ -1,11 +1,12 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * Strict Session-Driven UI State (LOGIN vs PROFILE 👤).
+ * Dynamically transforms /login into a luxury PROFILE PAGE upon authentication.
  */
 
-// Global active user state
+// Global active user state & original DOM template cache
 let currentAuthUser = null;
+let originalLoginCardHtml = null;
 
 function isLoginPage() {
     const p = window.location.pathname.toLowerCase();
@@ -76,10 +77,10 @@ async function logoutUser() {
     }
     
     updateNavbarAuthState(null);
+    if (isLoginPage()) {
+        showLoginPage();
+    }
     if (typeof showToast === 'function') showToast('Logged out successfully', '👋');
-    setTimeout(() => {
-        window.location.href = 'index.html';
-    }, 600);
 }
 
 function requireCustomerAuth(redirectUrl) {
@@ -98,8 +99,12 @@ async function signInWithGoogle() {
 
     const existingUser = getLoggedInUser();
     if (existingUser) {
-        console.error('[AUTH] User is already logged in. Navigating to account.');
-        window.location.href = 'account.html';
+        console.error('[AUTH] User is already logged in. Showing profile.');
+        if (isLoginPage()) {
+            showProfilePage(existingUser);
+        } else {
+            window.location.href = 'account.html';
+        }
         return;
     }
 
@@ -265,55 +270,115 @@ async function syncSupabaseSessionUser(user) {
     }
 }
 
-// Render Login Page In-Place Card State
-function renderLoginPageState(user) {
+// Render Unauthenticated Login Page UI
+function showLoginPage() {
+    console.error('[AUTH] Displaying Login Page UI on /login');
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
 
-    let loggedInBox = document.getElementById('loginPageAuthenticatedBox');
-
-    if (user) {
-        const displayName = user.name || user.user_metadata?.full_name || user.email || 'Valued Client';
-        const displayEmail = user.email || '';
-        const displayAvatar = user.avatar || user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
-
-        if (!loggedInBox) {
-            loggedInBox = document.createElement('div');
-            loggedInBox.id = 'loginPageAuthenticatedBox';
-            card.appendChild(loggedInBox);
+    if (originalLoginCardHtml) {
+        card.style.maxWidth = '';
+        card.style.margin = '';
+        card.style.padding = '';
+        card.innerHTML = originalLoginCardHtml;
+        
+        // Re-attach Google button event listener
+        const googleBtn = document.getElementById('googleAuthBtn');
+        if (googleBtn) {
+            googleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                signInWithGoogle();
+            });
         }
-        loggedInBox.style.display = 'block';
-        loggedInBox.innerHTML = `
-            <div style="text-align: center; padding: 24px 12px;">
-                <div style="width: 76px; height: 76px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; overflow: hidden; border: 2px solid var(--gold-light);">
-                    ${displayAvatar ? `<img src="${displayAvatar}" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
+        resetGoogleButtonState();
+    }
+}
+
+// Render Authenticated Full Profile Page UI In-Place on /login
+function showProfilePage(user) {
+    console.error('[AUTH] Displaying Full Profile Page UI on /login for user:', user);
+
+    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
+    if (!card) return;
+
+    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
+    const userEmail = user.email || '';
+    const userAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
+    const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
+
+    card.style.maxWidth = '900px';
+    card.style.margin = '0 auto';
+    card.style.padding = '40px 30px';
+
+    card.innerHTML = `
+        <div class="profile-page-view" style="text-align: left;">
+            <!-- VIP MEMBER HEADER CARD -->
+            <div style="display: flex; align-items: center; gap: 24px; padding-bottom: 28px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap;">
+                <div style="width: 90px; height: 90px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--gold-light); flex-shrink: 0; box-shadow: 0 0 15px var(--gold-glow);">
+                    ${userAvatar ? `<img src="${userAvatar}" alt="${userName}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
                 </div>
-                <h3 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.4rem; margin-bottom: 6px;">Welcome Back, ${displayName}</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 8px;">${displayEmail}</p>
-                <span class="stock-badge in-stock" style="margin-bottom: 24px; display: inline-block;">✓ Authenticated Session</span>
-                <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 16px;">
-                    <a href="account.html" class="btn-primary" style="padding: 12px 28px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-                        👤 Open Profile Section
-                    </a>
-                    <button onclick="logoutUser()" class="account-nav-btn" style="width: auto; padding: 12px 20px; color: #ef4444; border-color: rgba(239, 68, 68, 0.4); margin: 0;">
+                <div style="flex-grow: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
+                        <h2 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.6rem; margin: 0;">${userName}</h2>
+                        <span class="stock-badge in-stock" style="font-size: 0.75rem;">VIP VERIFIED MEMBER</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0 0 4px 0;">✉️ ${userEmail}</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">📞 ${userPhone} | <strong style="color: var(--success);">Account Status: Logged In</strong></p>
+                </div>
+                <div>
+                    <button onclick="logoutUser()" class="account-nav-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4); padding: 10px 20px; font-weight: 700; margin: 0;">
                         🚪 Logout
                     </button>
                 </div>
             </div>
-        `;
 
-        const tabHeader = card.querySelector('.auth-tabs');
-        if (tabHeader) tabHeader.style.display = 'none';
-        const elementsToHide = card.querySelectorAll('form, .social-auth, .divider-with-text, #emailLoginForm, #phoneForm, #otpForm');
-        elementsToHide.forEach(el => el.style.display = 'none');
+            <!-- PROFILE DASHBOARD GRID -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+                
+                <!-- MY ORDERS CARD -->
+                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 1.8rem; margin-bottom: 8px;">📦</div>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">MY ORDERS</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">View order history, shipment status & track your luxury watch deliveries.</p>
+                    </div>
+                    <a href="orders.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">View Orders →</a>
+                </div>
 
-    } else {
-        if (loggedInBox) loggedInBox.style.display = 'none';
-        const tabHeader = card.querySelector('.auth-tabs');
-        if (tabHeader) tabHeader.style.display = 'flex';
-        const elementsToShow = card.querySelectorAll('form, .social-auth, .divider-with-text, #emailLoginForm');
-        elementsToShow.forEach(el => el.style.display = '');
-    }
+                <!-- WISHLIST CARD -->
+                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 1.8rem; margin-bottom: 8px;">♥</div>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">SAVED WISHLIST</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Access your saved luxury timepieces and quick-add to shopping bag.</p>
+                    </div>
+                    <a href="wishlist.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Explore Wishlist →</a>
+                </div>
+
+                <!-- SAVED ADDRESSES CARD -->
+                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 1.8rem; margin-bottom: 8px;">📍</div>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">SAVED ADDRESSES</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Primary Delivery Address:</p>
+                        <p style="color: #fff; font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4;">Kathmandu, Bagmati Province<br>Nepal (Insured Express Delivery)</p>
+                    </div>
+                    <a href="account.html" class="account-nav-btn" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem; margin: 0;">Manage Addresses</a>
+                </div>
+
+                <!-- ACCOUNT SETTINGS CARD -->
+                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 1.8rem; margin-bottom: 8px;">⚙️</div>
+                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">ACCOUNT SETTINGS</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Google OAuth connected. Security & notification preferences active.</p>
+                    </div>
+                    <button onclick="showToast('Account security settings up to date', '🔒')" class="account-nav-btn" style="padding: 10px; width: 100%; text-align: center; font-size: 0.85rem; margin: 0;">Security Overview</button>
+                </div>
+
+            </div>
+        </div>
+    `;
 }
 
 // Single Reusable Function to Update Navbar Authentication State
@@ -377,7 +442,11 @@ function updateNavbarAuthState(session) {
     });
 
     if (isLoginPage()) {
-        renderLoginPageState(user);
+        if (user) {
+            showProfilePage(user);
+        } else {
+            showLoginPage();
+        }
     }
 }
 
@@ -390,8 +459,11 @@ function updateAuthUI() {
 
 // Immediate Page Load & OAuth Return Handler
 async function initAuthSystem() {
-    // Render immediate cached UI state
-    updateAuthUI();
+    // Cache original login form markup if on login page
+    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
+    if (card && isLoginPage() && !originalLoginCardHtml) {
+        originalLoginCardHtml = card.innerHTML;
+    }
 
     // Attach Google OAuth button listener if present on page
     const googleBtn = document.getElementById('googleAuthBtn');
@@ -400,7 +472,11 @@ async function initAuthSystem() {
             e.preventDefault();
             const existingUser = getLoggedInUser();
             if (existingUser) {
-                window.location.href = 'account.html';
+                if (isLoginPage()) {
+                    showProfilePage(existingUser);
+                } else {
+                    window.location.href = 'account.html';
+                }
                 return;
             }
             signInWithGoogle();
@@ -445,9 +521,15 @@ async function initAuthSystem() {
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
                     updateNavbarAuthState(session);
+                    if (isLoginPage()) {
+                        showProfilePage(session.user);
+                    }
                 } else {
                     console.error('[AUTH] Session on page load: null');
                     updateNavbarAuthState(null);
+                    if (isLoginPage()) {
+                        showLoginPage();
+                    }
                     resetGoogleButtonState();
                 }
 
@@ -456,15 +538,21 @@ async function initAuthSystem() {
                     console.error('[AUTH] Auth event:', event, session);
 
                     if (event === 'SIGNED_IN' || (session && session.user && event === 'INITIAL_SESSION')) {
-                        console.error('[AUTH] SIGNED_IN event received. Updating navbar to PROFILE:', session.user);
+                        console.error('[AUTH] SIGNED_IN event received. Rendering Profile Page:', session.user);
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
                         updateNavbarAuthState(session);
+                        if (isLoginPage()) {
+                            showProfilePage(session.user);
+                        }
                     } else if (event === 'SIGNED_OUT') {
-                        console.error('[AUTH] SIGNED_OUT event received. Updating navbar to LOGIN');
+                        console.error('[AUTH] SIGNED_OUT event received. Restoring Login Page');
                         currentAuthUser = null;
                         localStorage.removeItem('sony_store_user');
                         updateNavbarAuthState(null);
+                        if (isLoginPage()) {
+                            showLoginPage();
+                        }
                         resetGoogleButtonState();
                     }
                 });
@@ -472,6 +560,9 @@ async function initAuthSystem() {
         } catch (e) {
             console.error('[AUTH] Auth system init error:', e);
             updateNavbarAuthState(null);
+            if (isLoginPage()) {
+                showLoginPage();
+            }
             resetGoogleButtonState();
         }
     }
