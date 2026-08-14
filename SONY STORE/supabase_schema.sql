@@ -1,9 +1,9 @@
 -- ==========================================================================
 -- SONY STORE - COMPLETE SUPABASE DATABASE SCHEMA MIGRATION SCRIPT
--- Project URL: https://qwhtumvoyhoslbbnvwzf.supabase.co
+-- Project URL: https://qwhtumvohyoslbbnvwzf.supabase.co
 -- 
 -- INSTRUCTIONS:
--- 1. Open your Supabase Dashboard: https://supabase.com/dashboard/project/qwhtumvoyhoslbbnvwzf
+-- 1. Open your Supabase Dashboard: https://supabase.com/dashboard/project/qwhtumvohyoslbbnvwzf
 -- 2. Click "SQL Editor" on the left navigation sidebar.
 -- 3. Click "New query" (+ button).
 -- 4. Copy and paste this ENTIRE script into the SQL Editor.
