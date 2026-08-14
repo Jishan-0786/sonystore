@@ -1,11 +1,16 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * Detailed diagnostic logging for Google sign-in start, OAuth callback, getSession, auth state change, and profile loading.
+ * Exact Production Route Target: window.location.origin + '/login' (supports Cloudflare Pages /login & /login.html).
  */
 
 // Global active user state
 let currentAuthUser = null;
+
+function isLoginPage() {
+    const p = window.location.pathname.toLowerCase();
+    return p.endsWith('/login') || p.endsWith('/login.html') || p === '/login';
+}
 
 function getLoggedInUser() {
     if (currentAuthUser && currentAuthUser.loggedIn) {
@@ -123,7 +128,8 @@ async function signInWithGoogle() {
             throw noClientErr;
         }
 
-        const redirectTarget = window.location.origin + '/login.html';
+        // Production OAuth redirect target set to window.location.origin + '/login'
+        const redirectTarget = window.location.origin + '/login';
         console.error('[DEBUG LOG] Calling signInWithOAuth with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
@@ -268,7 +274,7 @@ function updateAuthUI() {
     const navs = document.querySelectorAll('#mainNav, .main-nav');
     
     navs.forEach(nav => {
-        let authLink = nav.querySelector('.nav-link-auth') || nav.querySelector('a[href="login.html"]') || nav.querySelector('a[href="account.html"]');
+        let authLink = nav.querySelector('.nav-link-auth') || nav.querySelector('a[href="login.html"]') || nav.querySelector('a[href="login"]') || nav.querySelector('a[href="account.html"]');
         if (!authLink) {
             authLink = document.createElement('a');
             authLink.className = 'nav-link nav-link-auth';
@@ -298,7 +304,7 @@ function updateAuthUI() {
             authLink.href = 'login.html';
             authLink.innerHTML = 'Login';
             authLink.style.display = 'inline-block';
-            if (window.location.pathname.endsWith('login.html')) {
+            if (isLoginPage()) {
                 authLink.classList.add('active');
             } else {
                 authLink.classList.remove('active');
@@ -360,7 +366,7 @@ async function initAuthSystem() {
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
 
-                    if (window.location.pathname.endsWith('login.html')) {
+                    if (isLoginPage()) {
                         const redirectParam = new URLSearchParams(window.location.search).get('redirect');
                         const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'index.html';
                         window.location.href = targetPage;
@@ -379,7 +385,7 @@ async function initAuthSystem() {
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
 
-                        if (window.location.pathname.endsWith('login.html')) {
+                        if (isLoginPage()) {
                             const redirectParam = new URLSearchParams(window.location.search).get('redirect');
                             const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'index.html';
                             window.location.href = targetPage;
