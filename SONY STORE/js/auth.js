@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * Exact Production Route Target: window.location.origin + '/login' (supports Cloudflare Pages /login & /login.html).
+ * In-Place Login Page Update: On returning to /login, stays on /login and immediately changes navbar LOGIN -> PROFILE.
  */
 
 // Global active user state
@@ -128,7 +128,6 @@ async function signInWithGoogle() {
             throw noClientErr;
         }
 
-        // Production OAuth redirect target set to window.location.origin + '/login'
         const redirectTarget = window.location.origin + '/login';
         console.error('[DEBUG LOG] Calling signInWithOAuth with redirectTo:', redirectTarget);
 
@@ -223,7 +222,7 @@ async function syncSupabaseSessionUser(user) {
         provider: user.app_metadata?.provider || 'google'
     });
 
-    // 1. Check if user profile row exists in Supabase profiles table
+    // Check if user profile row exists in Supabase profiles table
     const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
     if (client) {
         try {
@@ -237,7 +236,6 @@ async function syncSupabaseSessionUser(user) {
                 console.error('[DEBUG LOG] Error checking existing profile:', fetchErr.message || fetchErr);
             }
 
-            // 2. If profile DOES NOT exist, automatically insert new profile row
             if (!existingProfile) {
                 console.error('[DEBUG LOG] Creating new profile for user ID:', user.id);
                 const { data: insertedProfile, error: insertErr } = await client
@@ -268,6 +266,53 @@ async function syncSupabaseSessionUser(user) {
     updateAuthUI();
 }
 
+// Render Login Page In-Place Card State
+function renderLoginPageState(user) {
+    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
+    if (!card) return;
+
+    let loggedInBox = document.getElementById('loginPageAuthenticatedBox');
+
+    if (user && user.loggedIn) {
+        if (!loggedInBox) {
+            loggedInBox = document.createElement('div');
+            loggedInBox.id = 'loginPageAuthenticatedBox';
+            card.appendChild(loggedInBox);
+        }
+        loggedInBox.style.display = 'block';
+        loggedInBox.innerHTML = `
+            <div style="text-align: center; padding: 24px 12px;">
+                <div style="width: 76px; height: 76px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; overflow: hidden; border: 2px solid var(--gold-light);">
+                    ${user.avatar ? `<img src="${user.avatar}" alt="${user.name}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
+                </div>
+                <h3 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.4rem; margin-bottom: 6px;">Welcome Back, ${user.name || 'Valued Client'}</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 8px;">${user.email ? user.email : ''}</p>
+                <span class="stock-badge in-stock" style="margin-bottom: 24px; display: inline-block;">✓ Authenticated Session</span>
+                <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 16px;">
+                    <a href="account.html" class="btn-primary" style="padding: 12px 28px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                        👤 Open Profile Section
+                    </a>
+                    <button onclick="logoutUser()" class="account-nav-btn" style="width: auto; padding: 12px 20px; color: #ef4444; border-color: rgba(239, 68, 68, 0.4); margin: 0;">
+                        🚪 Logout
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const tabHeader = card.querySelector('.auth-tabs');
+        if (tabHeader) tabHeader.style.display = 'none';
+        const elementsToHide = card.querySelectorAll('form, .social-auth, .divider-with-text, #emailLoginForm, #phoneForm, #otpForm');
+        elementsToHide.forEach(el => el.style.display = 'none');
+
+    } else {
+        if (loggedInBox) loggedInBox.style.display = 'none';
+        const tabHeader = card.querySelector('.auth-tabs');
+        if (tabHeader) tabHeader.style.display = 'flex';
+        const elementsToShow = card.querySelectorAll('form, .social-auth, .divider-with-text, #emailLoginForm');
+        elementsToShow.forEach(el => el.style.display = '');
+    }
+}
+
 // Update Header Navigation Authentication Link (LOGIN vs PROFILE)
 function updateAuthUI() {
     const user = getLoggedInUser();
@@ -289,11 +334,14 @@ function updateAuthUI() {
             authLink.style.alignItems = 'center';
             authLink.style.gap = '6px';
 
+            const displayName = user.name || user.email || 'Profile';
             if (user.avatar) {
-                authLink.innerHTML = `<img src="${user.avatar}" alt="${user.name}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>${user.name || 'Account'}</span>`;
+                authLink.innerHTML = `<img src="${user.avatar}" alt="${displayName}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>Profile</span>`;
             } else {
-                authLink.innerHTML = `👤 <span>${user.name || 'Account'}</span>`;
+                authLink.innerHTML = `👤 <span>Profile</span>`;
             }
+
+            authLink.title = `${displayName} (${user.email || ''})`;
 
             if (window.location.pathname.endsWith('account.html') || window.location.pathname.endsWith('orders.html')) {
                 authLink.classList.add('active');
@@ -304,6 +352,8 @@ function updateAuthUI() {
             authLink.href = 'login.html';
             authLink.innerHTML = 'Login';
             authLink.style.display = 'inline-block';
+            authLink.removeAttribute('title');
+
             if (isLoginPage()) {
                 authLink.classList.add('active');
             } else {
@@ -311,6 +361,10 @@ function updateAuthUI() {
             }
         }
     });
+
+    if (isLoginPage()) {
+        renderLoginPageState(user);
+    }
 }
 
 // Immediate Page Load & OAuth Return Handler
@@ -357,7 +411,7 @@ async function initAuthSystem() {
                     }
                 }
 
-                // getSession check
+                // 1. Call getSession() on page load
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
                 console.error('[DEBUG LOG] getSession result:', { hasSession: Boolean(session), userId: session?.user?.id || null, error: sessionErr });
 
@@ -365,18 +419,12 @@ async function initAuthSystem() {
                     console.error('[DEBUG LOG] Session restored, user ID exists:', session.user.id);
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
-
-                    if (isLoginPage()) {
-                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'index.html';
-                        window.location.href = targetPage;
-                        return;
-                    }
+                    // User remains on the same page. Navbar is updated to PROFILE.
                 } else {
                     resetGoogleButtonState();
                 }
 
-                // Auth state change listener
+                // 2. Listen for onAuthStateChange
                 client.auth.onAuthStateChange(async (event, session) => {
                     console.error('[DEBUG LOG] Auth state change event:', { event, hasSession: Boolean(session), userId: session?.user?.id || null });
 
@@ -384,12 +432,7 @@ async function initAuthSystem() {
                         console.error('[DEBUG LOG] Session restored via auth state change:', session.user.id);
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
-
-                        if (isLoginPage()) {
-                            const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                            const targetPage = redirectParam ? decodeURIComponent(redirectParam) : 'index.html';
-                            window.location.href = targetPage;
-                        }
+                        // User remains on the same page. Navbar is immediately updated to PROFILE.
                     } else if (event === 'SIGNED_OUT') {
                         currentAuthUser = null;
                         localStorage.removeItem('sony_store_user');

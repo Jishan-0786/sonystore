@@ -315,14 +315,6 @@
     <script src="animations.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Check if already logged in
-            const loggedUser = getLoggedInUser();
-            if (loggedUser) {
-                const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
-                return;
-            }
-
             const tabEmailBtn = document.getElementById('tabEmailBtn');
             const tabPhoneBtn = document.getElementById('tabPhoneBtn');
             const emailLoginForm = document.getElementById('emailLoginForm');
