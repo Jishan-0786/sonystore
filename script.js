@@ -1,13 +1,18 @@
 /**
- * SONY STORE - Customer Authentication Engine & Page Route Controller
- * Prevents FOUC (Flash of Unauthenticated Content) on navbar loading.
- * Immediately resolves session & unhides #nav-auth-btn with visibility: visible.
+ * SONY STORE - Customer Authentication & Dynamic Navbar UI Engine
+ * Prevents FOUC (Flash of Unauthenticated Content) on navbar load.
+ * 
+ * Features:
+ * 1. Checks supabase.auth.getSession() & onAuthStateChange.
+ * 2. If authenticated: renders PROFILE button/link pointing to profile.html with avatar/name.
+ * 3. If unauthenticated: renders LOGIN button pointing to login.html.
+ * 4. Route protection: If unauthenticated on profile.html, redirects to index.html.
+ * 5. Auto-saves/upserts profile (id, email, full_name, avatar_url) into Supabase profiles table.
+ * 6. Cleans up #access_token from URL hash using window.history.replaceState.
+ * 7. Functional logoutUser() calling supabase.auth.signOut() and redirecting to index.html.
  */
 
-// Global active user state & original DOM template cache
-let currentAuthUser = null;
-let originalLoginCardHtml = null;
-
+// Helper functions for page route checking
 function isIndexPage() {
     const p = window.location.pathname.toLowerCase();
     return p === '/' || p.endsWith('/index.html') || p.endsWith('/index') || p === '';
@@ -23,121 +28,225 @@ function isProfilePage() {
     return p.endsWith('/profile.html') || p.endsWith('/profile') || p.endsWith('/account.html') || p.endsWith('/account');
 }
 
-function getLoggedInUser() {
-    if (currentAuthUser && currentAuthUser.loggedIn) {
-        return currentAuthUser;
-    }
+// Local caching for instant navbar render (zero FOUC)
+function getCachedUser() {
     try {
         const stored = JSON.parse(localStorage.getItem('sony_store_user'));
-        if (stored && stored.loggedIn) {
-            currentAuthUser = stored;
-            return stored;
-        }
+        if (stored && stored.loggedIn) return stored;
     } catch (e) {}
     return null;
 }
 
-function setLoggedInUser(user) {
+function setCachedUser(user) {
+    if (!user) {
+        localStorage.removeItem('sony_store_user');
+        return;
+    }
     const userData = {
         id: user.id || null,
-        phone: user.phone || user.user_metadata?.phone || '+977 VIP Client',
-        name: user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client',
+        name: user.user_metadata?.full_name || user.user_metadata?.name || user.name || (user.email ? user.email.split('@')[0] : 'Valued Client'),
         email: user.email || user.user_metadata?.email || '',
         avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '',
-        provider: user.app_metadata?.provider || 'google',
+        phone: user.user_metadata?.phone || user.phone || '+977 VIP Client',
         loggedIn: true,
         loginTime: new Date().toISOString()
     };
-    currentAuthUser = userData;
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
 }
 
-function resetGoogleButtonState() {
-    const btn = document.getElementById('googleAuthBtn');
-    const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
-    if (btn) {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.style.cursor = 'pointer';
-    }
-    if (btnText) {
-        btnText.textContent = 'Continue with Google';
-    }
-}
-
+// Clean up #access_token / #refresh_token / OAuth params from URL history
 function cleanUrlHash() {
     if (window.location.hash || window.location.search.includes('code=')) {
         if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, '', window.location.pathname);
+            window.history.replaceState(null, document.title, window.location.pathname);
         }
     }
 }
 
-async function logoutUser() {
-    console.log('[AUTH] Logging out user...');
-    currentAuthUser = null;
-    localStorage.removeItem('sony_store_user');
-    
-    if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
-        try {
-            await getSupabaseClient().auth.signOut();
-        } catch (e) {
-            console.error('[AUTH] signOut error:', e);
+// Auto-Save User Profile into Supabase Database `profiles` Table
+async function saveProfileToSupabase(user) {
+    if (!user) return;
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    if (!client) return;
+
+    const id = user.id;
+    const email = user.email || user.user_metadata?.email || '';
+    const full_name = user.user_metadata?.full_name || user.user_metadata?.name || user.name || (email ? email.split('@')[0] : '');
+    const avatar_url = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
+
+    try {
+        console.log('[AUTH] Upserting profile into Supabase profiles table for user:', id);
+        const { error } = await client
+            .from('profiles')
+            .upsert({
+                id,
+                email,
+                full_name,
+                avatar_url,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+
+        if (error) {
+            console.error('[AUTH] Supabase profiles upsert error:', error.message || error);
+        } else {
+            console.log('[AUTH] Profile successfully saved to Supabase profiles table.');
         }
+    } catch (err) {
+        console.error('[AUTH] Exception saving profile to Supabase:', err);
     }
-    
-    await updateNavbarAuthUI(null);
-
-    if (isProfilePage() || isLoginPage()) {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    if (typeof showToast === 'function') showToast('Logged out successfully', '👋');
 }
 
-function requireCustomerAuth(redirectUrl) {
-    const user = getLoggedInUser();
+// Render logged-in user profile details on profile.html
+function renderProfileData(user) {
+    if (!user) return;
+
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || (user.email ? user.email.split('@')[0] : 'Valued Client');
+    const email = user.email || user.user_metadata?.email || '';
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
+
+    // Update Avatar Image & Fallback
+    const avatarImg = document.getElementById('userAvatarImg');
+    const avatarBox = document.getElementById('avatarBox');
+    const avatarFallback = document.getElementById('avatarFallback');
+
+    if (avatarImg) {
+        if (avatarUrl) {
+            avatarImg.src = avatarUrl;
+            avatarImg.alt = fullName;
+            avatarImg.style.display = 'block';
+            if (avatarFallback) avatarFallback.style.display = 'none';
+        } else {
+            avatarImg.style.display = 'none';
+            if (avatarFallback) avatarFallback.style.display = 'inline-block';
+        }
+    } else if (avatarBox) {
+        if (avatarUrl) {
+            avatarBox.innerHTML = `<img src="${avatarUrl}" alt="${fullName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        } else {
+            avatarBox.innerHTML = `<span>👤</span>`;
+        }
+    }
+
+    // Update Name & Email Elements
+    const nameEl = document.getElementById('userNameHeading') || document.getElementById('userName');
+    if (nameEl) nameEl.textContent = fullName;
+
+    const emailEl = document.getElementById('userEmailPara') || document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = email ? `✉️ ${email}` : '';
+}
+
+// Dynamic Navbar State Updater (Prevents FOUC / Flickering)
+async function updateNavbarAuthUI(sessionParam) {
+    let session = sessionParam;
+
+    if (typeof session === 'undefined') {
+        const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+        if (client && client.auth) {
+            try {
+                const res = await client.auth.getSession();
+                session = res.data?.session || null;
+            } catch (e) {
+                console.warn('[AUTH] getSession error in updateNavbarAuthUI:', e);
+            }
+        }
+    }
+
+    let user = session ? session.user : null;
     if (!user) {
-        const target = redirectUrl || window.location.href;
-        window.location.href = `login.html?redirect=${encodeURIComponent(target)}`;
-        return false;
+        user = getCachedUser();
     }
-    return true;
+
+    const navs = document.querySelectorAll('#mainNav, .main-nav');
+    navs.forEach(nav => {
+        let authBtn = nav.querySelector('#nav-auth-btn') || 
+                      nav.querySelector('.nav-link-auth') || 
+                      Array.from(nav.querySelectorAll('a')).find(a => {
+                          const t = (a.textContent || '').trim().toUpperCase();
+                          const h = (a.getAttribute('href') || '').toLowerCase();
+                          return t === 'LOGIN' || t.includes('PROFILE') || t.includes('MY ACCOUNT') ||
+                                 h.includes('login') || h.includes('profile') || h.includes('account');
+                      });
+
+        if (!authBtn) {
+            authBtn = document.createElement('a');
+            nav.appendChild(authBtn);
+        }
+
+        authBtn.id = 'nav-auth-btn';
+        authBtn.className = 'nav-link nav-link-auth';
+
+        if (user && (user.email || user.id)) {
+            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || (user.email ? user.email.split('@')[0] : 'PROFILE');
+            const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
+
+            authBtn.href = 'profile.html';
+            authBtn.title = `Logged in as ${userName} (${user.email || ''})`;
+            authBtn.style.display = 'inline-flex';
+            authBtn.style.alignItems = 'center';
+            authBtn.style.gap = '6px';
+
+            if (avatarUrl) {
+                authBtn.innerHTML = `<img src="${avatarUrl}" alt="${userName}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid var(--gold-light);vertical-align:middle;"> <span>PROFILE</span>`;
+            } else {
+                authBtn.innerHTML = `👤 <span>PROFILE</span>`;
+            }
+
+            if (isProfilePage()) {
+                authBtn.classList.add('active');
+            } else {
+                authBtn.classList.remove('active');
+            }
+        } else {
+            authBtn.href = 'login.html';
+            authBtn.title = 'Sign In to Your Account';
+            authBtn.innerHTML = 'LOGIN';
+            authBtn.style.display = 'inline-block';
+            authBtn.removeAttribute('title');
+
+            if (isLoginPage()) {
+                authBtn.classList.add('active');
+            } else {
+                authBtn.classList.remove('active');
+            }
+        }
+
+        // FOUC FIX: Reveal navbar button once authentication state is determined
+        authBtn.style.visibility = 'visible';
+    });
+}
+
+// Backwards compatibility alias
+const updateNavbarAuthState = updateNavbarAuthUI;
+
+// Sign Out / Logout function
+async function logoutUser() {
+    console.log('[AUTH] Sign Out requested...');
+    setCachedUser(null);
+
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    if (client && client.auth) {
+        try {
+            await client.auth.signOut();
+        } catch (err) {
+            console.error('[AUTH] Supabase signOut error:', err);
+        }
+    }
+
+    await updateNavbarAuthUI(null);
+    window.location.href = 'index.html';
 }
 
 // Google OAuth Initiator
 async function signInWithGoogle() {
-    console.log('[AUTH] Google sign-in start', { origin: window.location.origin });
-
-    const btn = document.getElementById('googleAuthBtn');
-    const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
-    const errorBox = document.getElementById('googleAuthErrorBox');
-
-    if (errorBox) {
-        errorBox.style.display = 'none';
-        errorBox.textContent = '';
+    console.log('[AUTH] Starting Google Sign-In...');
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    if (!client || !client.auth) {
+        alert('Supabase auth client is not initialized.');
+        return;
     }
 
-    if (btn) {
-        btn.disabled = true;
-        btn.style.opacity = '0.7';
-        btn.style.cursor = 'wait';
-    }
-    if (btnText) {
-        btnText.textContent = 'Redirecting...';
-    }
-
+    const redirectTarget = window.location.origin + '/profile.html';
     try {
-        const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
-
-        if (!client || !client.auth) {
-            throw new Error('Supabase client is not initialized.');
-        }
-
-        const redirectTarget = window.location.origin + '/profile.html';
-        console.log('[AUTH] Calling signInWithOAuth with redirectTo:', redirectTarget);
-
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -146,435 +255,114 @@ async function signInWithGoogle() {
         });
 
         if (error) throw error;
-
         if (data && data.url) {
             window.location.href = data.url;
         }
-
     } catch (err) {
-        console.error('[AUTH] Google sign-in exception:', err);
-        resetGoogleButtonState();
-
-        const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
-
-        if (errorBox) {
-            errorBox.textContent = `Google OAuth Error: ${errMessage}`;
-            errorBox.style.display = 'block';
-        }
-
+        console.error('[AUTH] Google OAuth Exception:', err);
         if (typeof showToast === 'function') {
-            showToast(`Google Auth Error: ${errMessage}`, '❌');
+            showToast(`Google Auth Error: ${err.message || err}`, '❌');
         }
     }
 }
 
-// Supabase Email Login & Signup Helpers
-async function loginWithSupabaseEmail(email, password) {
-    if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
-        try {
-            const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            if (data && data.user) {
-                await syncSupabaseSessionUser(data.user);
-                return { success: true, user: data.user };
-            }
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
-    }
-    return { success: false, error: 'Supabase client not initialized.' };
-}
-
-async function signUpWithSupabaseEmail(email, password, phone, name) {
-    if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
-        try {
-            const { data, error } = await getSupabaseClient().auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { phone: phone, full_name: name }
-                }
-            });
-            if (error) throw error;
-            return { success: true, user: data.user };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
-    }
-    return { success: false, error: 'Supabase client not initialized.' };
-}
-
-// Synchronize Supabase User Object & Upsert Data into Supabase 'profiles' Table
-async function syncSupabaseSessionUser(user) {
-    if (!user) return;
-
-    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || '';
-    const userEmail = user.email || user.user_metadata?.email || '';
-    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
-    const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
-
-    setLoggedInUser({
-        id: user.id,
-        email: userEmail,
-        phone: userPhone,
-        name: userName,
-        avatar: avatarUrl,
-        provider: user.app_metadata?.provider || 'google'
-    });
-
-    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
-    if (client) {
-        try {
-            console.log('[AUTH] Upserting user profile into profiles table:', user.id);
-            const { data: upsertedProfile, error: upsertErr } = await client
-                .from('profiles')
-                .upsert({
-                    id: user.id,
-                    email: userEmail,
-                    full_name: userName,
-                    avatar_url: avatarUrl,
-                    phone: userPhone,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'id' });
-
-            if (upsertErr) {
-                console.error('[AUTH] Error upserting profile:', upsertErr.message || upsertErr);
-            } else {
-                console.log('[AUTH] Profile data upserted successfully:', upsertedProfile);
-            }
-        } catch (e) {
-            console.error('[AUTH] Exception during profile upsert:', e.message || e);
-        }
-    }
-}
-
-// Render User Details into Profile HTML Elements
-function renderProfilePage(user) {
-    if (!user) return;
-
-    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
-    const userEmail = user.email || user.user_metadata?.email || '';
-    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
-    const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
-
-    const heading = document.getElementById('userNameHeading');
-    if (heading) heading.textContent = userName;
-
-    const emailPara = document.getElementById('userEmailPara');
-    if (emailPara) emailPara.textContent = `✉️ ${userEmail}`;
-
-    const phoneSpan = document.getElementById('userPhoneSpan');
-    if (phoneSpan) phoneSpan.textContent = userPhone;
-
-    const avatarBox = document.getElementById('avatarBox');
-    if (avatarBox) {
-        if (avatarUrl) {
-            avatarBox.innerHTML = `<img src="${avatarUrl}" alt="${userName}" style="width:100%;height:100%;object-fit:cover;">`;
-        } else {
-            avatarBox.innerHTML = `<span>👤</span>`;
-        }
-    }
-}
-
-// showLogin: Displays the existing login UI in the same container
-function showLogin() {
-    console.log('[AUTH] showLogin CALLED');
-    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
-    if (!card) return;
-
-    if (originalLoginCardHtml) {
-        card.style.maxWidth = '';
-        card.style.margin = '';
-        card.style.padding = '';
-        card.innerHTML = originalLoginCardHtml;
-        
-        const googleBtn = document.getElementById('googleAuthBtn');
-        if (googleBtn) {
-            googleBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                signInWithGoogle();
-            });
-        }
-        resetGoogleButtonState();
-    }
-}
-
-// showProfile: Displays Profile UI in container
-function showProfile(user) {
-    console.log('[AUTH] showProfile CALLED for user:', user?.id || null);
-    renderProfilePage(user);
-
-    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
-    if (!card) return;
-
-    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
-    const userEmail = user.email || user.user_metadata?.email || '';
-    const userAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
-    const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
-
-    card.style.maxWidth = '900px';
-    card.style.margin = '0 auto';
-    card.style.padding = '40px 30px';
-
-    card.innerHTML = `
-        <div class="profile-dashboard-view" style="text-align: left;">
-            <div style="display: flex; align-items: center; gap: 24px; padding-bottom: 28px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap;">
-                <div style="width: 84px; height: 84px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--gold-light); flex-shrink: 0; box-shadow: 0 0 15px var(--gold-glow);">
-                    ${userAvatar ? `<img src="${userAvatar}" alt="${userName}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
-                </div>
-                <div style="flex-grow: 1;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
-                        <h2 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.6rem; margin: 0;">${userName}</h2>
-                        <span class="stock-badge in-stock" style="font-size: 0.75rem;">VIP VERIFIED MEMBER</span>
-                    </div>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0 0 4px 0;">✉️ ${userEmail}</p>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">📞 ${userPhone} | <strong style="color: var(--success);">Account Status: Logged In</strong></p>
-                </div>
-                <div>
-                    <button onclick="logoutUser()" class="account-nav-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4); padding: 10px 20px; font-weight: 700; margin: 0;">
-                        🚪 Sign Out
-                    </button>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 28px;">
-                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 1.8rem; margin-bottom: 8px;">📦</div>
-                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">My Orders</h4>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">View order history & track deliveries.</p>
-                    </div>
-                    <a href="orders.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">View Orders →</a>
-                </div>
-
-                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 1.8rem; margin-bottom: 8px;">♥</div>
-                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">Wishlist</h4>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Access saved luxury timepieces.</p>
-                    </div>
-                    <a href="wishlist.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Saved Items →</a>
-                </div>
-
-                <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 1.8rem; margin-bottom: 8px;">⚙️</div>
-                        <h4 style="font-family: var(--font-heading); color: var(--gold-light); font-size: 1.1rem; margin-bottom: 6px;">Account Settings</h4>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Security & profile preferences.</p>
-                    </div>
-                    <button onclick="showToast('Security settings active', '🔒')" class="account-nav-btn" style="padding: 10px; width: 100%; text-align: center; font-size: 0.85rem; margin: 0;">Settings Overview</button>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Aliases for compatibility
-const showLoginPage = showLogin;
-const showProfilePage = showProfile;
-
-// HEADER NAVBAR DYNAMIC STATE LOGIC (PREVENTS FOUC)
-async function updateNavbarAuthUI(sessionArg) {
-    let session = sessionArg;
-    if (typeof session === 'undefined' && typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
-        try {
-            const client = getSupabaseClient();
-            if (client && client.auth) {
-                const res = await client.auth.getSession();
-                session = res.data?.session || null;
-            }
-        } catch (e) {
-            console.warn('[AUTH] getSession error in updateNavbarAuthUI:', e);
-        }
-    }
-
-    const user = session ? session.user : (typeof getLoggedInUser === 'function' ? getLoggedInUser() : null);
-    const navs = document.querySelectorAll('#mainNav, .main-nav');
-
-    navs.forEach(nav => {
-        let authLink = nav.querySelector('#nav-auth-btn') || 
-                       nav.querySelector('#nav-login-btn') || 
-                       nav.querySelector('.nav-link-auth') || 
-                       Array.from(nav.querySelectorAll('a')).find(a => {
-                           const t = (a.textContent || '').trim().toUpperCase();
-                           const h = (a.getAttribute('href') || '').toLowerCase();
-                           return t.includes('LOGIN') || t.includes('PROFILE') || t.includes('MY ACCOUNT') ||
-                                  h.includes('login') || h.includes('profile') || h.includes('account');
-                       });
-
-        if (!authLink) {
-            authLink = document.createElement('a');
-            authLink.id = 'nav-auth-btn';
-            authLink.className = 'nav-link nav-link-auth';
-            nav.appendChild(authLink);
-        } else {
-            authLink.id = 'nav-auth-btn';
-            authLink.classList.add('nav-link-auth');
-        }
-
-        if (user && (user.email || user.id)) {
-            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'MY PROFILE';
-            const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
-
-            authLink.href = 'profile.html';
-            authLink.style.display = 'inline-flex';
-            authLink.style.alignItems = 'center';
-            authLink.style.gap = '6px';
-            authLink.title = `${userName} (${user.email || ''})`;
-
-            if (avatarUrl) {
-                authLink.innerHTML = `<img src="${avatarUrl}" alt="${userName}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>MY PROFILE</span>`;
-            } else {
-                authLink.innerHTML = `👤 <span>MY PROFILE</span>`;
-            }
-
-            if (isProfilePage()) {
-                authLink.classList.add('active');
-            } else {
-                authLink.classList.remove('active');
-            }
-        } else {
-            authLink.href = 'login.html';
-            authLink.innerHTML = 'LOGIN';
-            authLink.style.display = 'inline-block';
-            authLink.removeAttribute('title');
-
-            if (isLoginPage()) {
-                authLink.classList.add('active');
-            } else {
-                authLink.classList.remove('active');
-            }
-        }
-
-        // FOUC FIX: UNHIDE BUTTON ONCE STATE IS COMPUTED
-        authLink.style.visibility = 'visible';
-    });
-}
-
-// Alias for backwards compatibility
-const updateNavbarAuthState = updateNavbarAuthUI;
-
-// FAST INITIAL LOAD & DOM EVENT LISTENER
+// Fast Session Checker & Auth Controller Initializer
 async function initAuthSystem() {
-    // 0. Synchronous instant cache check for zero-flicker FOUC prevention
-    const cachedUser = getLoggedInUser();
+    // 0. Instant Cache Check to eliminate navbar rendering delay / flickering
+    const cachedUser = getCachedUser();
     if (cachedUser) {
         updateNavbarAuthUI({ user: cachedUser });
     }
 
-    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
-    if (card && isLoginPage() && !originalLoginCardHtml) {
-        originalLoginCardHtml = card.innerHTML;
-    }
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
 
-    const googleBtn = document.getElementById('googleAuthBtn');
-    if (googleBtn) {
-        googleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            signInWithGoogle();
-        });
-    }
-
-    if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
+    if (client && client.auth) {
         try {
-            const client = getSupabaseClient();
-            if (client && client.auth) {
-                const hasHashToken = window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token');
-                const hasAuthCode = window.location.search.includes('code=');
-                const isAuthCallbackPending = hasHashToken || hasAuthCode;
+            const hasHashToken = window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token');
+            const hasCodeParam = window.location.search.includes('code=');
+            const isAuthCallbackPending = hasHashToken || hasCodeParam;
 
-                if (hasAuthCode && typeof client.auth.exchangeCodeForSession === 'function') {
-                    try {
-                        const code = new URLSearchParams(window.location.search).get('code');
-                        if (code) {
-                            console.log('[AUTH] Exchanging auth code for session...');
-                            await client.auth.exchangeCodeForSession(code);
-                        }
-                    } catch (codeErr) {
-                        console.error('[AUTH] exchangeCodeForSession error:', codeErr);
-                    }
+            // Fetch session directly from Supabase
+            const { data: { session } } = await client.auth.getSession();
+
+            if (session && session.user) {
+                console.log('[AUTH] Active session found:', session.user.email);
+                setCachedUser(session.user);
+                await saveProfileToSupabase(session.user);
+                cleanUrlHash();
+
+                await updateNavbarAuthUI(session);
+
+                if (isProfilePage()) {
+                    renderProfileData(session.user);
+                } else if (isLoginPage()) {
+                    window.location.href = 'profile.html';
+                    return;
+                }
+            } else {
+                console.log('[AUTH] No active session found from getSession.');
+
+                // Route Protection: Unauthenticated access to profile.html redirects immediately to index.html
+                if (isProfilePage() && !isAuthCallbackPending) {
+                    setCachedUser(null);
+                    await updateNavbarAuthUI(null);
+                    window.location.href = 'index.html';
+                    return;
                 }
 
-                // 1. Fetch user session
-                const { data: { session }, error: sessionErr } = await client.auth.getSession();
-                console.log('[SUPABASE] getSession result:', session ? session.user?.email : null);
+                if (!cachedUser) {
+                    await updateNavbarAuthUI(null);
+                }
+            }
 
-                if (session?.user) {
-                    currentAuthUser = session.user;
-                    await syncSupabaseSessionUser(session.user);
-                    cleanUrlHash();
+            // Listen for Auth State Changes (OAuth Redirects, SIGNED_IN, SIGNED_OUT)
+            client.auth.onAuthStateChange(async (event, session) => {
+                console.log('[AUTH] onAuthStateChange event:', event);
 
-                    await updateNavbarAuthUI(session);
-                    renderProfilePage(session.user);
+                if (session && session.user) {
+                    setCachedUser(session.user);
 
-                    if (isIndexPage() || isLoginPage()) {
-                        window.location.href = 'profile.html';
-                        return;
-                    }
-                } else {
-                    const localUser = getLoggedInUser();
-                    if (localUser && isProfilePage()) {
-                        renderProfilePage(localUser);
-                        await updateNavbarAuthUI({ user: localUser });
-                    } else {
-                        await updateNavbarAuthUI(null);
-                        if (isProfilePage() && !isAuthCallbackPending) {
-                            window.location.href = 'index.html';
+                    if (event === 'SIGNED_IN' || isAuthCallbackPending) {
+                        await saveProfileToSupabase(session.user);
+                        cleanUrlHash();
+                        await updateNavbarAuthUI(session);
+
+                        if (isProfilePage()) {
+                            renderProfileData(session.user);
+                        } else if (isLoginPage() || isIndexPage()) {
+                            window.location.href = 'profile.html';
                             return;
                         }
-                    }
-                    if (isLoginPage()) {
-                        showLogin();
-                    }
-                    resetGoogleButtonState();
-                }
-
-                // 2. Listen for auth state changes
-                client.auth.onAuthStateChange(async (event, session) => {
-                    console.log('[SUPABASE] onAuthStateChange event:', event, session ? session.user?.email : null);
-
-                    if (session?.user) {
-                        currentAuthUser = session.user;
-                        await syncSupabaseSessionUser(session.user);
-                        cleanUrlHash();
-
-                        await updateNavbarAuthUI(session);
-                        renderProfilePage(session.user);
-
-                        if (event === 'SIGNED_IN' || isAuthCallbackPending) {
-                            if (isIndexPage() || isLoginPage()) {
-                                window.location.href = 'profile.html';
-                                return;
-                            }
-                        }
                     } else {
-                        if (event === 'SIGNED_OUT') {
-                            currentAuthUser = null;
-                            localStorage.removeItem('sony_store_user');
-                            await updateNavbarAuthUI(null);
-
-                            if (isProfilePage()) {
-                                window.location.href = 'index.html';
-                                return;
-                            }
-                            if (isLoginPage()) {
-                                showLogin();
-                            }
-                            resetGoogleButtonState();
+                        await updateNavbarAuthUI(session);
+                        if (isProfilePage()) {
+                            renderProfileData(session.user);
                         }
                     }
-                });
-            }
+                } else if (event === 'SIGNED_OUT') {
+                    setCachedUser(null);
+                    await updateNavbarAuthUI(null);
+                    if (isProfilePage()) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                }
+            });
+
         } catch (e) {
-            console.error('[AUTH] Auth system init error:', e);
-            updateNavbarAuthUI(null);
-            resetGoogleButtonState();
+            console.error('[AUTH] Auth system init exception:', e);
+            if (isProfilePage()) {
+                window.location.href = 'index.html';
+            }
         }
     } else {
-        updateNavbarAuthUI();
+        if (isProfilePage() && !getCachedUser()) {
+            window.location.href = 'index.html';
+        }
     }
 }
 
+// Bind initialization on DOM Content Loaded
 document.addEventListener('DOMContentLoaded', () => {
     initAuthSystem();
 });
