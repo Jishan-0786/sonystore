@@ -1,7 +1,7 @@
 /**
- * SONY STORE - Customer Authentication Engine
- * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * Full Route Control, Profile Upsert & Clean URL Parameters.
+ * SONY STORE - Customer Authentication Engine & Page Route Controller
+ * Dynamic Google OAuth Redirects to window.location.origin + '/profile.html'
+ * Robust Hash/Code Session Parsing & Route Guard Control.
  */
 
 // Global active user state & original DOM template cache
@@ -106,7 +106,7 @@ function requireCustomerAuth(redirectUrl) {
     return true;
 }
 
-// Google OAuth Integration with explicit Netlify profile.html redirect
+// 1. DYNAMIC REDIRECT ON LOGIN BUTTON CLICK
 async function signInWithGoogle() {
     console.log('[AUTH] Google sign-in start', { origin: window.location.origin });
 
@@ -135,10 +135,7 @@ async function signInWithGoogle() {
             throw new Error('Supabase client is not initialized.');
         }
 
-        const redirectTarget = window.location.origin.includes('sonywatchstore.netlify.app') 
-            ? 'https://sonywatchstore.netlify.app/profile.html' 
-            : window.location.origin + '/profile.html';
-
+        const redirectTarget = window.location.origin + '/profile.html';
         console.log('[AUTH] Calling signInWithOAuth with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
@@ -429,6 +426,22 @@ async function initAuthSystem() {
         try {
             const client = getSupabaseClient();
             if (client && client.auth) {
+                const hasHashToken = window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token');
+                const hasAuthCode = window.location.search.includes('code=');
+                const isAuthCallbackPending = hasHashToken || hasAuthCode;
+
+                if (hasAuthCode && typeof client.auth.exchangeCodeForSession === 'function') {
+                    try {
+                        const code = new URLSearchParams(window.location.search).get('code');
+                        if (code) {
+                            console.log('[AUTH] Exchanging auth code for session...');
+                            await client.auth.exchangeCodeForSession(code);
+                        }
+                    } catch (codeErr) {
+                        console.error('[AUTH] exchangeCodeForSession error:', codeErr);
+                    }
+                }
+
                 // 1. Check session on page load
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
                 console.log('[SUPABASE] getSession result:', session ? session : null);
@@ -439,20 +452,19 @@ async function initAuthSystem() {
                     cleanUrlHash();
                     updateNavbarAuthState(session);
 
-                    // Route control for authenticated user
-                    if (isIndexPage()) {
-                        console.log('[AUTH] Session active on index page -> Redirecting to profile.html');
+                    if (isProfilePage() && typeof renderProfilePage === 'function') {
+                        renderProfilePage(session.user);
+                    }
+                    if (isIndexPage() || isLoginPage()) {
+                        console.log('[AUTH] Session active on index/login -> Redirecting to profile.html');
                         window.location.href = 'profile.html';
                         return;
                     }
-                    if (isLoginPage()) {
-                        showProfile(session.user);
-                    }
                 } else {
                     updateNavbarAuthState(null);
-                    // Route control for unauthenticated user
-                    if (isProfilePage()) {
-                        console.log('[AUTH] No session on profile page -> Redirecting to index.html');
+                    // Only redirect away from profile.html if NO OAuth callback is currently being processed
+                    if (isProfilePage() && !isAuthCallbackPending) {
+                        console.log('[AUTH] No session on profile page & no callback pending -> Redirecting to index.html');
                         window.location.href = 'index.html';
                         return;
                     }
@@ -472,25 +484,30 @@ async function initAuthSystem() {
                         cleanUrlHash();
                         updateNavbarAuthState(session);
 
-                        if (event === 'SIGNED_IN') {
+                        if (isProfilePage() && typeof renderProfilePage === 'function') {
+                            renderProfilePage(session.user);
+                        }
+                        if (event === 'SIGNED_IN' || isAuthCallbackPending) {
                             if (isIndexPage() || isLoginPage()) {
                                 window.location.href = 'profile.html';
                                 return;
                             }
                         }
                     } else {
-                        currentAuthUser = null;
-                        localStorage.removeItem('sony_store_user');
-                        updateNavbarAuthState(null);
+                        if (event === 'SIGNED_OUT') {
+                            currentAuthUser = null;
+                            localStorage.removeItem('sony_store_user');
+                            updateNavbarAuthState(null);
 
-                        if (isProfilePage()) {
-                            window.location.href = 'index.html';
-                            return;
+                            if (isProfilePage()) {
+                                window.location.href = 'index.html';
+                                return;
+                            }
+                            if (isLoginPage()) {
+                                showLogin();
+                            }
+                            resetGoogleButtonState();
                         }
-                        if (isLoginPage()) {
-                            showLogin();
-                        }
-                        resetGoogleButtonState();
                     }
                 });
             }
