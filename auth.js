@@ -1,14 +1,14 @@
 /**
  * SONY STORE - Customer Authentication & Dynamic Navbar UI Engine
  * Features:
- * 1. syncNavbarState() cleans #access_token BEFORE updating UI to prevent race conditions.
- * 2. Checks Supabase getSession() and localStorage memory state to eliminate FOUC.
- * 3. Filters onAuthStateChange to fire ONLY on explicit state changes (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED).
- * 4. Updates id="nav-auth-btn" (and id="nav-login-link") to "PROFILE" (profile.html) or "LOGIN" (login.html).
- * 5. Route Protection: Redirects unauthenticated users away from profile.html to index.html.
+ * 1. syncNavbarAndRoute() function managing session sync, URL token cleanup, and route protection.
+ * 2. Dynamically updates id="nav-auth-btn" to "PROFILE" (profile.html) when logged in, and "LOGIN" (login.html) when logged out.
+ * 3. Binds to DOMContentLoaded and supabase.auth.onAuthStateChange.
+ * 4. Hydrates profile.html DOM elements with user info and attaches Sign Out event listener.
+ * 5. Route Protection: Automatically redirects unauthenticated users away from profile.html to index.html.
  */
 
-// Local memory helpers
+// Local memory helpers for instant zero-FOUC state
 function getCachedUser() {
     try {
         const stored = JSON.parse(localStorage.getItem('sony_store_user'));
@@ -33,68 +33,60 @@ function setCachedUser(user) {
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
 }
 
-// MAIN SYNCHRONOUS & ASYNCHRONOUS NAVBAR STATE ENGINE
-async function syncNavbarState() {
-    // 1. Clean token hash first to prevent initial auth state reset loops
-    if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code=')) {
-        if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, '', window.location.pathname);
+// GLOBAL AUTH SESSION SYNC LOGIC
+async function syncNavbarAndRoute() {
+    try {
+        // 1. Clean access_token from hash if present
+        if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code=')) {
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
         }
-    }
 
-    let client = null;
-    if (typeof getSupabaseClient === 'function') client = getSupabaseClient();
-    if (!client && typeof supabase !== 'undefined' && supabase.auth) client = supabase;
-    if (!client && window.supabaseClient) client = window.supabaseClient;
+        let client = null;
+        if (typeof getSupabaseClient === 'function') client = getSupabaseClient();
+        if (!client && typeof supabase !== 'undefined' && supabase.auth) client = supabase;
+        if (!client && window.supabaseClient) client = window.supabaseClient;
 
-    let session = null;
-    if (client && client.auth) {
-        try {
-            const { data } = await client.auth.getSession();
-            session = data?.session || null;
-        } catch (e) {
-            console.warn('[AUTH] getSession notice in syncNavbarState:', e);
+        let session = null;
+        if (client && client.auth) {
+            try {
+                const { data: { session: fetchedSession }, error } = await client.auth.getSession();
+                if (error) console.error("Session fetch error:", error);
+                session = fetchedSession || null;
+            } catch (e) {
+                console.error("Session fetch exception:", e);
+            }
         }
-    }
 
-    const cachedUser = getCachedUser();
-    const currentUser = session?.user || cachedUser;
-    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
+        const cachedUser = getCachedUser();
+        const currentUser = session?.user || cachedUser;
+        const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
 
-    if (authBtn) {
         if (session || currentUser) {
-            // USER IS LOGGED IN
-            authBtn.innerText = 'PROFILE';
-            authBtn.href = 'profile.html';
-            authBtn.style.visibility = 'visible';
-            authBtn.title = `Logged in as ${currentUser?.user_metadata?.full_name || currentUser?.name || currentUser?.email || 'User'}`;
+            if (authBtn) {
+                authBtn.innerText = 'PROFILE';
+                authBtn.href = 'profile.html';
+                authBtn.style.visibility = 'visible';
+            }
+            if (window.location.pathname.includes('profile.html')) {
+                hydrateProfilePage(currentUser);
+            }
         } else {
-            // USER IS NOT LOGGED IN
-            authBtn.innerText = 'LOGIN';
-            authBtn.href = 'login.html';
-            authBtn.style.visibility = 'visible';
-            authBtn.removeAttribute('title');
+            if (authBtn) {
+                authBtn.innerText = 'LOGIN';
+                authBtn.href = 'login.html';
+                authBtn.style.visibility = 'visible';
+            }
+            // Kick unauthorized user out of profile page
+            if (window.location.pathname.includes('profile.html')) {
+                window.location.href = 'index.html';
+            }
         }
-    }
-
-    // Dynamic Route Protection & Profile Hydration
-    const isProfile = window.location.pathname.toLowerCase().includes('profile');
-    if (isProfile) {
-        if (!session && !currentUser) {
-            window.location.href = 'index.html';
-            return;
-        }
-        if (currentUser) {
-            hydrateProfilePage(currentUser);
-        }
+    } catch (err) {
+        console.error("Auth sync error:", err);
     }
 }
-
-// Global Aliases for Compatibility
-window.syncNavbarState = syncNavbarState;
-window.checkUserSession = syncNavbarState;
-window.updateAuthUI = syncNavbarState;
-const renderAuthState = syncNavbarState;
 
 // Hydrate profile.html DOM elements
 function hydrateProfilePage(user) {
@@ -161,7 +153,7 @@ async function logoutUser() {
         }
     }
 
-    await syncNavbarState();
+    await syncNavbarAndRoute();
     window.location.href = 'index.html';
 }
 
@@ -191,12 +183,18 @@ async function signInWithGoogle() {
     }
 }
 
-// Event Listeners & Auth State Binder
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initial execution on DOM load
-    syncNavbarState();
+// Global Aliases
+window.syncNavbarAndRoute = syncNavbarAndRoute;
+window.syncNavbarState = syncNavbarAndRoute;
+window.checkUserSession = syncNavbarAndRoute;
+window.updateAuthUI = syncNavbarAndRoute;
+const renderAuthState = syncNavbarAndRoute;
 
-    // 2. Attach Google OAuth Click Listeners
+// Bind to DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    syncNavbarAndRoute();
+
+    // Attach Google OAuth Click Listeners
     const googleBtns = document.querySelectorAll('#google-login-btn, #googleAuthBtn, .btn-google-auth');
     googleBtns.forEach(btn => {
         if (!btn.dataset.authBound) {
@@ -209,20 +207,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// 3. Listen for explicit auth state changes (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
+// Bind to onAuthStateChange
 let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 if (client && client.auth) {
     client.auth.onAuthStateChange((event, session) => {
-        console.log('[AUTH] onAuthStateChange event:', event);
-
         if (session?.user) {
             setCachedUser(session.user);
         } else if (event === 'SIGNED_OUT') {
             setCachedUser(null);
         }
-
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || (session && session.user)) {
-            syncNavbarState();
-        }
+        syncNavbarAndRoute();
     });
 }
