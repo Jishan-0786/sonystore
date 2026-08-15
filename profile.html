@@ -248,42 +248,21 @@
     <script src="animations.js"></script>
 
     <script>
-        function renderProfilePage(user) {
-            if (!user) return;
-            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
-            const userEmail = user.email || user.user_metadata?.email || '';
-            const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
-            const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
-
-            const heading = document.getElementById('userNameHeading');
-            if (heading) heading.textContent = userName;
-
-            const emailPara = document.getElementById('userEmailPara');
-            if (emailPara) emailPara.textContent = `✉️ ${userEmail}`;
-
-            const phoneSpan = document.getElementById('userPhoneSpan');
-            if (phoneSpan) phoneSpan.textContent = userPhone;
-
-            const avatarBox = document.getElementById('avatarBox');
-            if (avatarBox) {
-                if (avatarUrl) {
-                    avatarBox.innerHTML = `<img src="${avatarUrl}" alt="${userName}">`;
-                } else {
-                    avatarBox.innerHTML = `<span>👤</span>`;
-                }
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
                 const client = getSupabaseClient();
-                const { data: { session } } = await client.auth.getSession();
-                if (session && session.user) {
-                    renderProfilePage(session.user);
-                } else {
-                    const localUser = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
-                    if (localUser) {
-                        renderProfilePage(localUser);
+                if (client && client.auth) {
+                    const { data: { session } } = await client.auth.getSession();
+                    if (session && session.user) {
+                        if (typeof renderProfilePage === 'function') renderProfilePage(session.user);
+                        if (typeof updateNavbarAuthState === 'function') updateNavbarAuthState(session);
+                        window.history.replaceState(null, '', window.location.pathname);
+                    } else {
+                        const localUser = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+                        if (localUser) {
+                            if (typeof renderProfilePage === 'function') renderProfilePage(localUser);
+                            if (typeof updateNavbarAuthState === 'function') updateNavbarAuthState({ user: localUser });
+                        }
                     }
                 }
             }

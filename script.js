@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine & Page Route Controller
- * Dynamic Google OAuth Redirects to window.location.origin + '/profile.html'
- * Robust Hash/Code Session Parsing & Route Guard Control.
+ * Senior Frontend Developer Authentication Lifecycle Implementation.
+ * Fixes: Dynamic Profile Data Fetching, Dynamic Navbar LOGIN/PROFILE state, Hash Cleanup.
  */
 
 // Global active user state & original DOM template cache
@@ -40,11 +40,11 @@ function getLoggedInUser() {
 function setLoggedInUser(user) {
     const userData = {
         id: user.id || null,
-        phone: user.phone || '+977 9800000000',
-        name: user.name || user.full_name || 'Valued Customer',
-        email: user.email || '',
-        avatar: user.avatar || user.avatar_url || '',
-        provider: user.provider || 'google',
+        phone: user.phone || user.user_metadata?.phone || '+977 VIP Client',
+        name: user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client',
+        email: user.email || user.user_metadata?.email || '',
+        avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '',
+        provider: user.app_metadata?.provider || 'google',
         loggedIn: true,
         loginTime: new Date().toISOString()
     };
@@ -65,10 +65,11 @@ function resetGoogleButtonState() {
     }
 }
 
+// ISSUE 3 FIX: URL HASH CLEANUP IMMEDIATELY AFTER SESSION LOADING
 function cleanUrlHash() {
     if (window.location.hash || window.location.search.includes('code=')) {
         if (window.history && window.history.replaceState) {
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState(null, '', window.location.pathname);
         }
     }
 }
@@ -106,7 +107,7 @@ function requireCustomerAuth(redirectUrl) {
     return true;
 }
 
-// 1. DYNAMIC REDIRECT ON LOGIN BUTTON CLICK
+// Dynamic Google OAuth Initiator
 async function signInWithGoogle() {
     console.log('[AUTH] Google sign-in start', { origin: window.location.origin });
 
@@ -211,7 +212,7 @@ async function syncSupabaseSessionUser(user) {
     const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || '';
     const userEmail = user.email || user.user_metadata?.email || '';
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
-    const userPhone = user.user_metadata?.phone || user.phone || '+977 9800000000';
+    const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
 
     setLoggedInUser({
         id: user.id,
@@ -248,6 +249,34 @@ async function syncSupabaseSessionUser(user) {
     }
 }
 
+// ISSUE 1 FIX: RENDER USER DETAILS INTO HTML DOM ELEMENTS
+function renderProfilePage(user) {
+    if (!user) return;
+
+    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
+    const userEmail = user.email || user.user_metadata?.email || '';
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
+    const userPhone = user.user_metadata?.phone || user.phone || '+977 VIP Client';
+
+    const heading = document.getElementById('userNameHeading');
+    if (heading) heading.textContent = userName;
+
+    const emailPara = document.getElementById('userEmailPara');
+    if (emailPara) emailPara.textContent = `✉️ ${userEmail}`;
+
+    const phoneSpan = document.getElementById('userPhoneSpan');
+    if (phoneSpan) phoneSpan.textContent = userPhone;
+
+    const avatarBox = document.getElementById('avatarBox');
+    if (avatarBox) {
+        if (avatarUrl) {
+            avatarBox.innerHTML = `<img src="${avatarUrl}" alt="${userName}" style="width:100%;height:100%;object-fit:cover;">`;
+        } else {
+            avatarBox.innerHTML = `<span>👤</span>`;
+        }
+    }
+}
+
 // showLogin: Displays the existing login UI in the same container
 function showLogin() {
     console.log('[AUTH] showLogin CALLED');
@@ -275,6 +304,7 @@ function showLogin() {
 // showProfile: Displays Profile UI in the container
 function showProfile(user) {
     console.log('[AUTH] showProfile CALLED for user:', user?.id || null);
+    renderProfilePage(user);
 
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
@@ -350,9 +380,9 @@ function showProfile(user) {
 const showLoginPage = showLogin;
 const showProfilePage = showProfile;
 
-// Update Navbar Authentication State Links Across Header
+// ISSUE 2 FIX: DYNAMIC HEADER / NAVBAR UPDATE (LOGIN -> PROFILE)
 function updateNavbarAuthState(session) {
-    const user = session ? session.user : null;
+    const user = session ? session.user : (typeof getLoggedInUser === 'function' ? getLoggedInUser() : null);
     const navs = document.querySelectorAll('#mainNav, .main-nav');
 
     navs.forEach(nav => {
@@ -371,9 +401,9 @@ function updateNavbarAuthState(session) {
             authLink.classList.add('nav-link-auth');
         }
 
-        if (user) {
-            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'PROFILE';
-            const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+        if (user && (user.email || user.id)) {
+            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'PROFILE';
+            const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
 
             authLink.href = 'profile.html';
             authLink.style.display = 'inline-flex';
@@ -407,7 +437,7 @@ function updateNavbarAuthState(session) {
     });
 }
 
-// Immediate Page Load & OAuth Return Handler with Route Redirect Control
+// Immediate Page Load & OAuth Return Handler
 async function initAuthSystem() {
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (card && isLoginPage() && !originalLoginCardHtml) {
@@ -442,31 +472,36 @@ async function initAuthSystem() {
                     }
                 }
 
-                // 1. Check session on page load
+                // 1. Fetch user session
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
-                console.log('[SUPABASE] getSession result:', session ? session : null);
+                console.log('[SUPABASE] getSession result:', session ? session.user?.email : null);
 
                 if (session?.user) {
                     currentAuthUser = session.user;
                     await syncSupabaseSessionUser(session.user);
-                    cleanUrlHash();
-                    updateNavbarAuthState(session);
 
-                    if (isProfilePage() && typeof renderProfilePage === 'function') {
-                        renderProfilePage(session.user);
-                    }
+                    // ISSUE 3 FIX: URL HASH CLEANUP IMMEDIATELY AFTER getSession()
+                    cleanUrlHash();
+
+                    // ISSUE 1 & 2 FIX: DYNAMIC DOM & NAVBAR UPDATE
+                    updateNavbarAuthState(session);
+                    renderProfilePage(session.user);
+
                     if (isIndexPage() || isLoginPage()) {
-                        console.log('[AUTH] Session active on index/login -> Redirecting to profile.html');
                         window.location.href = 'profile.html';
                         return;
                     }
                 } else {
-                    updateNavbarAuthState(null);
-                    // Only redirect away from profile.html if NO OAuth callback is currently being processed
-                    if (isProfilePage() && !isAuthCallbackPending) {
-                        console.log('[AUTH] No session on profile page & no callback pending -> Redirecting to index.html');
-                        window.location.href = 'index.html';
-                        return;
+                    const localUser = getLoggedInUser();
+                    if (localUser && isProfilePage()) {
+                        renderProfilePage(localUser);
+                        updateNavbarAuthState({ user: localUser });
+                    } else {
+                        updateNavbarAuthState(null);
+                        if (isProfilePage() && !isAuthCallbackPending) {
+                            window.location.href = 'index.html';
+                            return;
+                        }
                     }
                     if (isLoginPage()) {
                         showLogin();
@@ -481,12 +516,14 @@ async function initAuthSystem() {
                     if (session?.user) {
                         currentAuthUser = session.user;
                         await syncSupabaseSessionUser(session.user);
-                        cleanUrlHash();
-                        updateNavbarAuthState(session);
 
-                        if (isProfilePage() && typeof renderProfilePage === 'function') {
-                            renderProfilePage(session.user);
-                        }
+                        // ISSUE 3 FIX: URL HASH CLEANUP
+                        cleanUrlHash();
+
+                        // ISSUE 1 & 2 FIX: DYNAMIC DOM & NAVBAR UPDATE
+                        updateNavbarAuthState(session);
+                        renderProfilePage(session.user);
+
                         if (event === 'SIGNED_IN' || isAuthCallbackPending) {
                             if (isIndexPage() || isLoginPage()) {
                                 window.location.href = 'profile.html';
