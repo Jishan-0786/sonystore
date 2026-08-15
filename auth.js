@@ -1,15 +1,15 @@
 /**
- * SONY STORE - Master Auth Guard & Immediate OAuth Redirect Engine
+ * SONY STORE - Customer Authentication & Async-Protected Auth Guard Engine
  * 
- * Rules:
- * 1. signInWithOAuth options set redirectTo: window.location.origin + '/profile.html'.
- * 2. Inside onAuthStateChange, if event === 'SIGNED_IN' and not on profile.html, redirects immediately to /profile.html.
- * 3. populateUserProfile(user) hydrates Google user metadata (name, email, avatar).
- * 4. Nav button click triggers Google OAuth when logged out, or opens profile.html when logged in.
+ * Features:
+ * 1. Awaits getSession() FIRST on DOMContentLoaded before running any route guard.
+ * 2. Hydrates profile user data (name, email, avatar) on profile.html smoothly without flashing/kickback.
+ * 3. Registers onAuthStateChange ONLY for SIGNED_OUT or active profile updates.
+ * 4. Nav button click: triggers Google OAuth if logged out, or opens profile.html if logged in.
  * 5. Logout button calls supabase.auth.signOut() and redirects to index.html.
  */
 
-// Local memory helpers
+// Local memory state helpers
 function getCachedUser() {
     try {
         const stored = JSON.parse(localStorage.getItem('sony_store_user'));
@@ -42,9 +42,9 @@ function populateUserProfile(user) {
     const avatarEl = document.getElementById('user-avatar');
     const avatarFallback = document.getElementById('avatarFallback');
 
-    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || 'User';
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || 'User';
     const email = user.email || user.user_metadata?.email || '';
-    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
 
     if (nameEl) nameEl.innerText = fullName;
     if (emailEl) emailEl.innerText = email;
@@ -74,124 +74,103 @@ window.populateUserProfile = populateUserProfile;
 window.loadUserProfile = populateUserProfile;
 window.populateProfileData = populateUserProfile;
 
-// Master Auth Guard
+// Async-Protected Auth Guard
 document.addEventListener('DOMContentLoaded', async () => {
-    // Clean hash token from URL address bar if already on target page
-    const currentPath = window.location.pathname.toLowerCase();
-    const isProfilePage = currentPath.includes('profile.html') || currentPath.endsWith('/profile');
-    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
-
-    if (isProfilePage && (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code='))) {
+    // Clean hash token from URL bar if returning from OAuth
+    if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code=')) {
         if (window.history && window.history.replaceState) {
             window.history.replaceState(null, '', window.location.pathname);
         }
     }
 
+    const currentPath = window.location.pathname.toLowerCase();
+    const isProfilePage = currentPath.includes('profile.html') || currentPath.endsWith('/profile');
+    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
+
     let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
-    // Initial local cache check to prevent FOUC / flicker
+    // Initial instant cache check to prevent FOUC / flicker
     const cachedUser = getCachedUser();
     if (cachedUser) {
-        if (authBtn) {
-            authBtn.innerText = 'PROFILE';
-            authBtn.style.visibility = 'visible';
-        }
+        if (authBtn) authBtn.innerText = 'PROFILE';
+        if (isProfilePage) populateUserProfile(cachedUser);
+    }
+
+    // Wait for initial session fetch before doing any redirect guard
+    let session = null;
+    if (client && client.auth) {
+        try {
+            const { data } = await client.auth.getSession();
+            session = data?.session || null;
+        } catch (e) {}
+    }
+
+    const activeUser = session?.user || cachedUser;
+
+    if (activeUser) {
+        // Authenticated User
+        setCachedUser(activeUser);
+        if (authBtn) authBtn.innerText = 'PROFILE';
         if (isProfilePage) {
-            populateUserProfile(cachedUser);
+            populateUserProfile(activeUser);
+        }
+    } else {
+        // Unauthenticated User
+        if (authBtn) authBtn.innerText = 'PROFILE';
+        if (isProfilePage) {
+            setCachedUser(null);
+            window.location.href = 'index.html';
+            return;
         }
     }
 
-    // Listen to Auth State Changes (Handles OAuth redirect & Hash automatically)
+    // Listen for Auth Changes (Sign In / Sign Out)
     if (client && client.auth) {
-        client.auth.onAuthStateChange(async (event, session) => {
-            console.log('[AUTH] onAuthStateChange event:', event, 'session:', session?.user?.email);
-
-            if (session && session.user) {
-                setCachedUser(session.user);
-
-                // LOGGED IN
-                if (authBtn) {
-                    authBtn.innerText = 'PROFILE';
-                    authBtn.style.visibility = 'visible';
-                }
-
-                // If event is SIGNED_IN (or OAuth hash present), move directly to profile.html
-                if ((event === 'SIGNED_IN' || window.location.hash.includes('access_token')) && !window.location.pathname.toLowerCase().includes('profile.html')) {
-                    window.location.href = 'profile.html';
-                    return;
-                }
-
+        client.auth.onAuthStateChange((event, currentSession) => {
+            console.log('[AUTH] onAuthStateChange event:', event);
+            if (event === 'SIGNED_OUT' && isProfilePage) {
+                setCachedUser(null);
+                window.location.href = 'index.html';
+            } else if (currentSession && currentSession.user) {
+                setCachedUser(currentSession.user);
+                if (authBtn) authBtn.innerText = 'PROFILE';
                 if (isProfilePage) {
-                    populateUserProfile(session.user);
-                }
-            } else {
-                // LOGGED OUT
-                if (authBtn) {
-                    authBtn.innerText = 'PROFILE';
-                    authBtn.style.visibility = 'visible';
-                }
-
-                const currentCache = getCachedUser();
-
-                // ONLY redirect if on profile.html AND initial session check is complete / explicit SIGNED_OUT
-                if (isProfilePage && (event === 'SIGNED_OUT' || !currentCache)) {
-                    setCachedUser(null);
-                    window.location.href = 'index.html';
+                    populateUserProfile(currentSession.user);
                 }
             }
         });
-
-        // Perform initial session check
-        try {
-            const { data: { session } } = await client.auth.getSession();
-            if (session?.user) {
-                setCachedUser(session.user);
-                if (authBtn) authBtn.innerText = 'PROFILE';
-
-                if (window.location.hash.includes('access_token') && !window.location.pathname.toLowerCase().includes('profile.html')) {
-                    window.location.href = 'profile.html';
-                    return;
-                }
-
-                if (isProfilePage) populateUserProfile(session.user);
-            } else if (!cachedUser && isProfilePage && !window.location.hash.includes('access_token')) {
-                window.location.href = 'index.html';
-            }
-        } catch (err) {}
     }
 
-    // Nav Button Click Event
+    // Nav Profile Button Click Guard
     if (authBtn) {
         authBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             let currentClient = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
-            let session = null;
+            let activeSession = null;
             if (currentClient && currentClient.auth) {
                 try {
                     const { data } = await currentClient.auth.getSession();
-                    session = data?.session || null;
+                    activeSession = data?.session || null;
                 } catch (e) {}
             }
 
-            const activeUser = session?.user || getCachedUser();
+            const currentUser = activeSession?.user || getCachedUser();
 
-            if (!session && !activeUser) {
+            if (!activeSession && !currentUser) {
                 if (currentClient && currentClient.auth) {
                     await currentClient.auth.signInWithOAuth({
                         provider: 'google',
                         options: { redirectTo: window.location.origin + '/profile.html' }
                     });
                 }
-            } else {
-                if (!isProfilePage) {
-                    window.location.href = 'profile.html';
-                }
+            } else if (!isProfilePage) {
+                window.location.href = 'profile.html';
             }
         });
     }
 
-    // Logout Button Event Listener
+    // Logout Button
     const logoutBtn = document.getElementById('logout-btn') || document.getElementById('signOutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async (e) => {
