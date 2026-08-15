@@ -1,14 +1,14 @@
 /**
  * SONY STORE - Customer Authentication & Dynamic Navbar UI Engine
  * Features:
- * 1. syncNavbarAndRoute() function managing session sync, URL token cleanup, and route protection.
- * 2. Dynamically updates id="nav-auth-btn" to "PROFILE" (profile.html) when logged in, and "LOGIN" (login.html) when logged out.
- * 3. Binds to DOMContentLoaded and supabase.auth.onAuthStateChange.
- * 4. Hydrates profile.html DOM elements with user info and attaches Sign Out event listener.
- * 5. Route Protection: Automatically redirects unauthenticated users away from profile.html to index.html.
+ * 1. Checks supabase.auth.getSession() on page load and onAuthStateChange.
+ * 2. Dynamically switches navbar #nav-auth-btn to "PROFILE" (profile.html) when logged in, or "LOGIN" (login.html) when logged out.
+ * 3. Auto-redirects to /profile.html on Google OAuth callback return while cleaning #access_token from URL.
+ * 4. Hydrates profile.html with Google user name, email, avatar picture, and working Sign Out handler.
+ * 5. Route Protection: Redirects unauthenticated users away from profile.html to index.html.
  */
 
-// Local memory helpers for instant zero-FOUC state
+// Local memory helpers for instant zero-FOUC state rendering
 function getCachedUser() {
     try {
         const stored = JSON.parse(localStorage.getItem('sony_store_user'));
@@ -33,29 +33,31 @@ function setCachedUser(user) {
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
 }
 
-// GLOBAL AUTH SESSION SYNC LOGIC
+function cleanUrlHash() {
+    if (window.location.hash || window.location.search.includes('code=')) {
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+    }
+}
+
+// MAIN DYNAMIC NAVBAR SWITCH & ROUTE MANAGER
 async function syncNavbarAndRoute() {
     try {
-        // 1. Clean access_token from hash if present
-        if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code=')) {
-            if (window.history && window.history.replaceState) {
-                window.history.replaceState(null, '', window.location.pathname);
-            }
-        }
+        const hasHashToken = window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token');
+        const hasCodeParam = window.location.search.includes('code=');
+        const isOAuthCallback = hasHashToken || hasCodeParam;
 
-        let client = null;
-        if (typeof getSupabaseClient === 'function') client = getSupabaseClient();
-        if (!client && typeof supabase !== 'undefined' && supabase.auth) client = supabase;
-        if (!client && window.supabaseClient) client = window.supabaseClient;
+        let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
         let session = null;
         if (client && client.auth) {
             try {
                 const { data: { session: fetchedSession }, error } = await client.auth.getSession();
-                if (error) console.error("Session fetch error:", error);
+                if (error) console.error("[AUTH] getSession error:", error);
                 session = fetchedSession || null;
             } catch (e) {
-                console.error("Session fetch exception:", e);
+                console.error("[AUTH] getSession exception:", e);
             }
         }
 
@@ -63,32 +65,55 @@ async function syncNavbarAndRoute() {
         const currentUser = session?.user || cachedUser;
         const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
 
+        const currentPath = window.location.pathname.toLowerCase();
+        const isProfilePage = currentPath.includes('profile');
+        const isIndexOrLoginPage = currentPath === '/' || currentPath.endsWith('/index.html') || currentPath.endsWith('/index') || currentPath.endsWith('/login.html') || currentPath.endsWith('/login') || currentPath === '';
+
         if (session || currentUser) {
+            // USER IS LOGGED IN
             if (authBtn) {
                 authBtn.innerText = 'PROFILE';
                 authBtn.href = 'profile.html';
                 authBtn.style.visibility = 'visible';
+                authBtn.title = `Logged in as ${currentUser?.user_metadata?.full_name || currentUser?.name || currentUser?.email || 'User'}`;
             }
-            if (window.location.pathname.includes('profile.html')) {
+
+            // AUTO REDIRECT TO PROFILE ON OAUTH CALLBACK
+            if (isOAuthCallback && isIndexOrLoginPage) {
+                cleanUrlHash();
+                window.location.href = 'profile.html';
+                return;
+            }
+
+            if (isProfilePage) {
+                if (isOAuthCallback) cleanUrlHash();
                 hydrateProfilePage(currentUser);
             }
         } else {
+            // USER IS NOT LOGGED IN
             if (authBtn) {
                 authBtn.innerText = 'LOGIN';
                 authBtn.href = 'login.html';
                 authBtn.style.visibility = 'visible';
+                authBtn.removeAttribute('title');
             }
-            // Kick unauthorized user out of profile page
-            if (window.location.pathname.includes('profile.html')) {
+
+            // ROUTE GUARD: Redirect unauthenticated user away from profile page
+            if (isProfilePage && !isOAuthCallback) {
                 window.location.href = 'index.html';
+                return;
             }
         }
+
+        if (isOAuthCallback) {
+            cleanUrlHash();
+        }
     } catch (err) {
-        console.error("Auth sync error:", err);
+        console.error("[AUTH] syncNavbarAndRoute exception:", err);
     }
 }
 
-// Hydrate profile.html DOM elements
+// HYDRATE PROFILE PAGE USER DATA
 function hydrateProfilePage(user) {
     if (!user) return;
 
@@ -96,15 +121,15 @@ function hydrateProfilePage(user) {
     const email = user.email || user.user_metadata?.email || '';
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
 
-    // Populate Name
+    // 1. Full Name
     const nameEl = document.getElementById('user-name') || document.getElementById('userNameHeading') || document.getElementById('userName');
     if (nameEl) nameEl.textContent = fullName;
 
-    // Populate Email
+    // 2. Email Address
     const emailEl = document.getElementById('user-email') || document.getElementById('userEmailPara') || document.getElementById('userEmail');
     if (emailEl) emailEl.textContent = email ? `✉️ ${email}` : '';
 
-    // Populate Avatar
+    // 3. Avatar Image
     const avatarImg = document.getElementById('user-avatar') || document.getElementById('userAvatarImg');
     const avatarFallback = document.getElementById('avatarFallback');
     const avatarBox = document.getElementById('avatarBox');
@@ -127,7 +152,7 @@ function hydrateProfilePage(user) {
         }
     }
 
-    // Attach Sign Out Listener
+    // 4. Functional Sign Out Listener
     const logoutBtn = document.getElementById('logout-btn') || document.getElementById('signOutBtn');
     if (logoutBtn && !logoutBtn.dataset.logoutBound) {
         logoutBtn.dataset.logoutBound = "true";
@@ -138,7 +163,7 @@ function hydrateProfilePage(user) {
     }
 }
 
-// Sign Out / Logout function
+// SIGN OUT / LOGOUT HANDLER
 async function logoutUser() {
     console.log('[AUTH] Logging out user...');
     setCachedUser(null);
@@ -157,9 +182,9 @@ async function logoutUser() {
     window.location.href = 'index.html';
 }
 
-// Google OAuth Initiator
+// GOOGLE OAUTH INITIATOR
 async function signInWithGoogle() {
-    console.log('[AUTH] Starting Google Sign-In...');
+    console.log('[AUTH] Initiating Google Sign-In...');
     let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
     if (!client || !client.auth) {
@@ -183,14 +208,15 @@ async function signInWithGoogle() {
     }
 }
 
-// Global Aliases
+// Global Export Aliases
 window.syncNavbarAndRoute = syncNavbarAndRoute;
 window.syncNavbarState = syncNavbarAndRoute;
 window.checkUserSession = syncNavbarAndRoute;
 window.updateAuthUI = syncNavbarAndRoute;
+window.logoutUser = logoutUser;
 const renderAuthState = syncNavbarAndRoute;
 
-// Bind to DOMContentLoaded
+// DOM LOAD LISTENER
 document.addEventListener('DOMContentLoaded', () => {
     syncNavbarAndRoute();
 
@@ -207,15 +233,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Bind to onAuthStateChange
+// AUTH STATE CHANGE LISTENER
 let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 if (client && client.auth) {
     client.auth.onAuthStateChange((event, session) => {
+        console.log('[AUTH] onAuthStateChange event:', event);
+
         if (session?.user) {
             setCachedUser(session.user);
         } else if (event === 'SIGNED_OUT') {
             setCachedUser(null);
         }
+
         syncNavbarAndRoute();
     });
 }
