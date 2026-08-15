@@ -1,12 +1,11 @@
 /**
- * SONY STORE - Customer Authentication & Direct PROFILE Navbar Engine
+ * SONY STORE - Customer Authentication & Dynamic PROFILE Button Logic
  * 
- * Flow:
- * 1. Navbar auth button text is set to "PROFILE" with id="nav-auth-btn".
- * 2. Unauthenticated user clicking "PROFILE" -> Triggers Supabase Google OAuth login immediately.
- * 3. Authenticated user clicking "PROFILE" -> Navigates directly to /profile.html.
- * 4. OAuth Return -> Cleans up #access_token from URL address bar and auto-redirects to /profile.html.
- * 5. Route Protection -> Unauthenticated access to /profile.html automatically redirects to /index.html.
+ * Behavior:
+ * 1. LOGGED-IN STATE: Clicking "PROFILE" opens/stays on profile.html page.
+ * 2. LOGGED-OUT STATE: Clicking "PROFILE" initiates Supabase Google Login (signInWithOAuth).
+ * 3. ROUTE GUARD & CLEANUP: Cleans up #access_token hash on OAuth callback; redirects unauthenticated profile.html access to index.html.
+ * 4. SIGN OUT: Calls supabase.auth.signOut(), clears local cache, and redirects to index.html.
  */
 
 // Local memory state helpers
@@ -38,6 +37,41 @@ function cleanUrlHash() {
     if (window.location.hash || window.location.search.includes('code=')) {
         if (window.history && window.history.replaceState) {
             window.history.replaceState(null, '', window.location.pathname);
+        }
+    }
+}
+
+// HANDLE PROFILE BUTTON CLICK DYNAMICALLY
+async function handleProfileClick(e) {
+    let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
+
+    let session = null;
+    if (client && client.auth) {
+        try {
+            const { data } = await client.auth.getSession();
+            session = data?.session || null;
+        } catch (err) {}
+    }
+
+    const cachedUser = getCachedUser();
+    const currentUser = session?.user || cachedUser;
+    const isProfilePage = window.location.pathname.toLowerCase().includes('profile');
+
+    if (!session && !currentUser) {
+        // NOT LOGGED IN -> Trigger Google Login directly
+        e.preventDefault();
+        console.log('[AUTH] User not logged in. Initiating Google OAuth...');
+        if (client && client.auth) {
+            await client.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + '/profile.html' }
+            });
+        }
+    } else {
+        // LOGGED IN -> Go to profile page
+        if (!isProfilePage) {
+            e.preventDefault();
+            window.location.href = 'profile.html';
         }
     }
 }
@@ -74,15 +108,11 @@ async function syncAuthSystem() {
             authBtn.innerText = 'PROFILE';
             authBtn.href = 'profile.html';
             authBtn.style.visibility = 'visible';
-            if (currentUser) {
-                authBtn.title = `Logged in as ${currentUser?.user_metadata?.full_name || currentUser?.name || currentUser?.email || 'User'}`;
-            } else {
-                authBtn.title = 'Sign In with Google';
-            }
+            authBtn.title = currentUser ? `Logged in as ${currentUser?.user_metadata?.full_name || currentUser?.name || currentUser?.email || 'User'}` : 'Sign In with Google';
         }
 
         if (session || currentUser) {
-            // AUTO REDIRECT TO PROFILE UPON RETURNING FROM GOOGLE AUTH
+            // AUTO REDIRECT TO PROFILE ON OAUTH CALLBACK RETURN
             if (isOAuthCallback && isIndexPage) {
                 cleanUrlHash();
                 window.location.href = 'profile.html';
@@ -94,7 +124,7 @@ async function syncAuthSystem() {
                 hydrateProfilePage(currentUser);
             }
         } else {
-            // ROUTE PROTECTION: Redirect unauthenticated user away from profile.html to /index.html
+            // ROUTE GUARD: Redirect unauthenticated user away from profile.html to index.html
             if (isProfilePage && !isOAuthCallback) {
                 window.location.href = 'index.html';
                 return;
@@ -109,38 +139,16 @@ async function syncAuthSystem() {
     }
 }
 
-// BIND CLICK LISTENER TO NAVBAR PROFILE BUTTON FOR DIRECT GOOGLE LOGIN
+// BIND PROFILE CLICK EVENT LISTENER
 function bindNavAuthButton() {
     const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
     if (authBtn && !authBtn.dataset.clickBound) {
         authBtn.dataset.clickBound = "true";
-        authBtn.addEventListener('click', async (e) => {
-            let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
-
-            let session = null;
-            if (client && client.auth) {
-                try {
-                    const { data } = await client.auth.getSession();
-                    session = data?.session || null;
-                } catch (err) {}
-            }
-
-            const cachedUser = getCachedUser();
-            if (!session && !cachedUser) {
-                e.preventDefault();
-                console.log('[AUTH] Unauthenticated PROFILE click -> initiating Google OAuth...');
-                if (client && client.auth) {
-                    await client.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: { redirectTo: window.location.origin + '/profile.html' }
-                    });
-                }
-            }
-        });
+        authBtn.addEventListener('click', handleProfileClick);
     }
 }
 
-// HYDRATE PROFILE PAGE DATA
+// HYDRATE PROFILE PAGE USER DATA
 function hydrateProfilePage(user) {
     if (!user) return;
 
@@ -209,7 +217,8 @@ async function logoutUser() {
     window.location.href = 'index.html';
 }
 
-// Global Exports & Aliases
+// Global Export Aliases
+window.handleProfileClick = handleProfileClick;
 window.syncAuthSystem = syncAuthSystem;
 window.syncNavbarAndRoute = syncAuthSystem;
 window.syncNavbarState = syncAuthSystem;
@@ -222,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncAuthSystem();
     bindNavAuthButton();
 
-    // Also bind any extra Google Login buttons on the page
+    // Attach any extra Google Login buttons on the page
     const googleBtns = document.querySelectorAll('#google-login-btn, #googleAuthBtn, .btn-google-auth');
     googleBtns.forEach(btn => {
         if (!btn.dataset.authBound) {
