@@ -1,11 +1,14 @@
 /**
- * SONY STORE - Customer Authentication & Dynamic PROFILE Button Logic
+ * SONY STORE - Customer Authentication & PROFILE Navbar Engine
+ * 
+ * Navbar Button: <a href="javascript:void(0);" id="nav-auth-btn">PROFILE</a>
  * 
  * Behavior:
- * 1. LOGGED-IN STATE: Clicking "PROFILE" opens/stays on profile.html page.
- * 2. LOGGED-OUT STATE: Clicking "PROFILE" initiates Supabase Google Login (signInWithOAuth).
- * 3. ROUTE GUARD & CLEANUP: Cleans up #access_token hash on OAuth callback; redirects unauthenticated profile.html access to index.html.
- * 4. SIGN OUT: Calls supabase.auth.signOut(), clears local cache, and redirects to index.html.
+ * 1. href="javascript:void(0);" prevents browser native navigation competition.
+ * 2. Unauthenticated user clicking "PROFILE" -> Triggers Supabase Google OAuth (signInWithOAuth).
+ * 3. Authenticated user clicking "PROFILE" -> Navigates to /profile.html.
+ * 4. Route Guard & Hash Cleanup -> Cleans up #access_token from URL; redirects unauthorized visits to /profile.html back to /index.html.
+ * 5. Sign Out -> Clears session via supabase.auth.signOut(), removes local cache, and redirects to /index.html.
  */
 
 // Local memory state helpers
@@ -33,16 +36,19 @@ function setCachedUser(user) {
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
 }
 
-function cleanUrlHash() {
-    if (window.location.hash || window.location.search.includes('code=')) {
+// Check session on load for route guard & URL hash cleanup
+async function checkProfileRouteGuard() {
+    const hasHashToken = window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token');
+    const hasCodeParam = window.location.search.includes('code=');
+    const isOAuthCallback = hasHashToken || hasCodeParam;
+
+    // Clean access_token from URL hash
+    if (isOAuthCallback) {
         if (window.history && window.history.replaceState) {
             window.history.replaceState(null, '', window.location.pathname);
         }
     }
-}
 
-// HANDLE PROFILE BUTTON CLICK DYNAMICALLY
-async function handleProfileClick(e) {
     let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
     let session = null;
@@ -50,105 +56,33 @@ async function handleProfileClick(e) {
         try {
             const { data } = await client.auth.getSession();
             session = data?.session || null;
-        } catch (err) {}
+        } catch (e) {}
     }
 
     const cachedUser = getCachedUser();
     const currentUser = session?.user || cachedUser;
-    const isProfilePage = window.location.pathname.toLowerCase().includes('profile');
+    const currentPath = window.location.pathname.toLowerCase();
+    const isProfilePage = currentPath.includes('profile.html') || currentPath.endsWith('/profile');
+    const isIndexPage = currentPath === '/' || currentPath.endsWith('/index.html') || currentPath.endsWith('/index') || currentPath === '';
 
-    if (!session && !currentUser) {
-        // NOT LOGGED IN -> Trigger Google Login directly
-        e.preventDefault();
-        console.log('[AUTH] User not logged in. Initiating Google OAuth...');
-        if (client && client.auth) {
-            await client.auth.signInWithOAuth({
-                provider: 'google',
-                options: { redirectTo: window.location.origin + '/profile.html' }
-            });
-        }
-    } else {
-        // LOGGED IN -> Go to profile page
-        if (!isProfilePage) {
-            e.preventDefault();
-            window.location.href = 'profile.html';
-        }
+    // Auto-redirect to profile page if returning from Google OAuth
+    if ((session || currentUser) && isOAuthCallback && isIndexPage) {
+        window.location.href = 'profile.html';
+        return;
+    }
+
+    // Protection: Kick unauthorized user out of profile.html
+    if (!session && !currentUser && !isOAuthCallback && isProfilePage) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    if ((session || currentUser) && isProfilePage) {
+        hydrateProfilePage(currentUser);
     }
 }
 
-// MAIN AUTH & ROUTE SYNC CONTROLLER
-async function syncAuthSystem() {
-    try {
-        const hasHashToken = window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token');
-        const hasCodeParam = window.location.search.includes('code=');
-        const isOAuthCallback = hasHashToken || hasCodeParam;
-
-        let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
-
-        let session = null;
-        if (client && client.auth) {
-            try {
-                const { data: { session: fetchedSession }, error } = await client.auth.getSession();
-                if (error) console.error("[AUTH] getSession error:", error);
-                session = fetchedSession || null;
-            } catch (e) {
-                console.error("[AUTH] getSession exception:", e);
-            }
-        }
-
-        const cachedUser = getCachedUser();
-        const currentUser = session?.user || cachedUser;
-        const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
-
-        const currentPath = window.location.pathname.toLowerCase();
-        const isProfilePage = currentPath.includes('profile');
-        const isIndexPage = currentPath === '/' || currentPath.endsWith('/index.html') || currentPath.endsWith('/index') || currentPath === '';
-
-        if (authBtn) {
-            authBtn.innerText = 'PROFILE';
-            authBtn.href = 'profile.html';
-            authBtn.style.visibility = 'visible';
-            authBtn.title = currentUser ? `Logged in as ${currentUser?.user_metadata?.full_name || currentUser?.name || currentUser?.email || 'User'}` : 'Sign In with Google';
-        }
-
-        if (session || currentUser) {
-            // AUTO REDIRECT TO PROFILE ON OAUTH CALLBACK RETURN
-            if (isOAuthCallback && isIndexPage) {
-                cleanUrlHash();
-                window.location.href = 'profile.html';
-                return;
-            }
-
-            if (isProfilePage) {
-                if (isOAuthCallback) cleanUrlHash();
-                hydrateProfilePage(currentUser);
-            }
-        } else {
-            // ROUTE GUARD: Redirect unauthenticated user away from profile.html to index.html
-            if (isProfilePage && !isOAuthCallback) {
-                window.location.href = 'index.html';
-                return;
-            }
-        }
-
-        if (isOAuthCallback) {
-            cleanUrlHash();
-        }
-    } catch (err) {
-        console.error("[AUTH] syncAuthSystem exception:", err);
-    }
-}
-
-// BIND PROFILE CLICK EVENT LISTENER
-function bindNavAuthButton() {
-    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
-    if (authBtn && !authBtn.dataset.clickBound) {
-        authBtn.dataset.clickBound = "true";
-        authBtn.addEventListener('click', handleProfileClick);
-    }
-}
-
-// HYDRATE PROFILE PAGE USER DATA
+// Hydrate Profile Page
 function hydrateProfilePage(user) {
     if (!user) return;
 
@@ -156,15 +90,12 @@ function hydrateProfilePage(user) {
     const email = user.email || user.user_metadata?.email || '';
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
 
-    // Full Name
     const nameEl = document.getElementById('user-name') || document.getElementById('userNameHeading') || document.getElementById('userName');
     if (nameEl) nameEl.textContent = fullName;
 
-    // Email Address
     const emailEl = document.getElementById('user-email') || document.getElementById('userEmailPara') || document.getElementById('userEmail');
     if (emailEl) emailEl.textContent = email ? `✉️ ${email}` : '';
 
-    // Avatar Image
     const avatarImg = document.getElementById('user-avatar') || document.getElementById('userAvatarImg');
     const avatarFallback = document.getElementById('avatarFallback');
     const avatarBox = document.getElementById('avatarBox');
@@ -186,19 +117,9 @@ function hydrateProfilePage(user) {
             avatarBox.innerHTML = `<span>👤</span>`;
         }
     }
-
-    // Sign Out Button
-    const logoutBtn = document.getElementById('logout-btn') || document.getElementById('signOutBtn');
-    if (logoutBtn && !logoutBtn.dataset.logoutBound) {
-        logoutBtn.dataset.logoutBound = "true";
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await logoutUser();
-        });
-    }
 }
 
-// LOGOUT HANDLER
+// Sign Out Handler
 async function logoutUser() {
     console.log('[AUTH] Logging out user...');
     setCachedUser(null);
@@ -213,56 +134,89 @@ async function logoutUser() {
         }
     }
 
-    await syncAuthSystem();
     window.location.href = 'index.html';
 }
 
-// Global Export Aliases
-window.handleProfileClick = handleProfileClick;
-window.syncAuthSystem = syncAuthSystem;
-window.syncNavbarAndRoute = syncAuthSystem;
-window.syncNavbarState = syncAuthSystem;
-window.checkUserSession = syncAuthSystem;
-window.updateAuthUI = syncAuthSystem;
+// Global Aliases
+window.checkProfileRouteGuard = checkProfileRouteGuard;
 window.logoutUser = logoutUser;
 
-// DOM LOAD LISTENER
+// Attach click listeners on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
-    syncAuthSystem();
-    bindNavAuthButton();
+    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
+    if (authBtn) {
+        authBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
-    // Attach any extra Google Login buttons on the page
-    const googleBtns = document.querySelectorAll('#google-login-btn, #googleAuthBtn, .btn-google-auth');
-    googleBtns.forEach(btn => {
-        if (!btn.dataset.authBound) {
-            btn.dataset.authBound = "true";
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
+            let session = null;
+            if (client && client.auth) {
+                try {
+                    const { data } = await client.auth.getSession();
+                    session = data?.session || null;
+                } catch (err) {}
+            }
+
+            const cachedUser = getCachedUser();
+            const currentUser = session?.user || cachedUser;
+
+            if (!session && !currentUser) {
+                // USER NOT LOGGED IN -> Trigger Google OAuth
+                console.log('[AUTH] User not logged in. Initiating Google OAuth...');
                 if (client && client.auth) {
-                    await client.auth.signInWithOAuth({
+                    const { error } = await client.auth.signInWithOAuth({
                         provider: 'google',
                         options: { redirectTo: window.location.origin + '/profile.html' }
                     });
+                    if (error) alert("Login Error: " + (error.message || error));
                 }
-            });
-        }
+            } else {
+                // USER LOGGED IN -> Open Profile Page
+                if (!window.location.pathname.toLowerCase().includes('profile.html')) {
+                    window.location.href = 'profile.html';
+                }
+            }
+        });
+    }
+
+    // Attach Logout Button Listener
+    const logoutBtn = document.getElementById('logout-btn') || document.getElementById('signOutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await logoutUser();
+        });
+    }
+
+    // Attach extra Google Login buttons on the page
+    const googleBtns = document.querySelectorAll('#google-login-btn, #googleAuthBtn, .btn-google-auth');
+    googleBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
+            if (client && client.auth) {
+                const { error } = await client.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.origin + '/profile.html' }
+                });
+                if (error) alert("Login Error: " + (error.message || error));
+            }
+        });
     });
+
+    // Check session on load for route guard
+    checkProfileRouteGuard();
 });
 
-// AUTH STATE CHANGE LISTENER
+// Auth State Change Listener
 let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 if (client && client.auth) {
     client.auth.onAuthStateChange((event, session) => {
-        console.log('[AUTH] onAuthStateChange event:', event);
-
         if (session?.user) {
             setCachedUser(session.user);
         } else if (event === 'SIGNED_OUT') {
             setCachedUser(null);
         }
-
-        syncAuthSystem();
-        bindNavAuthButton();
+        checkProfileRouteGuard();
     });
 }
