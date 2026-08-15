@@ -1,31 +1,14 @@
 /**
  * SONY STORE - Customer Authentication & Dynamic Navbar UI Engine
  * Features:
- * 1. checkUserSession() function checking Supabase session & local cache.
- * 2. Dynamically switches navbar link id="nav-login-link" text to "PROFILE" (profile.html) when logged in, and "LOGIN" (login.html) when logged out.
- * 3. Prevents FOUC & race conditions by executing on DOMContentLoaded and onAuthStateChange.
- * 4. OAuth Callback Redirect: On index.html/login.html, if session is detected after OAuth callback, automatically redirects to profile.html.
+ * 1. syncNavbarState() cleans #access_token BEFORE updating UI to prevent race conditions.
+ * 2. Checks Supabase getSession() and localStorage memory state to eliminate FOUC.
+ * 3. Filters onAuthStateChange to fire ONLY on explicit state changes (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED).
+ * 4. Updates id="nav-auth-btn" (and id="nav-login-link") to "PROFILE" (profile.html) or "LOGIN" (login.html).
  * 5. Route Protection: Redirects unauthenticated users away from profile.html to index.html.
- * 6. Cleans up #access_token from URL address bar via window.history.replaceState.
  */
 
-// Route helpers
-function isIndexPage() {
-    const p = window.location.pathname.toLowerCase();
-    return p === '/' || p.endsWith('/index.html') || p.endsWith('/index') || p === '';
-}
-
-function isLoginPageCheck() {
-    const p = window.location.pathname.toLowerCase();
-    return p.endsWith('/login') || p.endsWith('/login.html') || p === '/login';
-}
-
-function isProfilePage() {
-    const p = window.location.pathname.toLowerCase();
-    return p.endsWith('/profile.html') || p.endsWith('/profile') || p.endsWith('/account.html') || p.endsWith('/account');
-}
-
-// Local cache for zero-flicker instant navbar render
+// Local memory helpers
 function getCachedUser() {
     try {
         const stored = JSON.parse(localStorage.getItem('sony_store_user'));
@@ -50,26 +33,19 @@ function setCachedUser(user) {
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
 }
 
-function cleanUrlHash() {
-    if (window.location.hash || window.location.search.includes('code=')) {
+// MAIN SYNCHRONOUS & ASYNCHRONOUS NAVBAR STATE ENGINE
+async function syncNavbarState() {
+    // 1. Clean token hash first to prevent initial auth state reset loops
+    if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code=')) {
         if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, document.title, window.location.pathname);
+            window.history.replaceState(null, '', window.location.pathname);
         }
     }
-}
 
-// CENTRAL USER SESSION & NAVBAR SWITCH FUNCTION
-async function checkUserSession() {
     let client = null;
-    if (typeof getSupabaseClient === 'function') {
-        client = getSupabaseClient();
-    }
-    if (!client && typeof supabase !== 'undefined' && supabase.auth) {
-        client = supabase;
-    }
-    if (!client && window.supabaseClient) {
-        client = window.supabaseClient;
-    }
+    if (typeof getSupabaseClient === 'function') client = getSupabaseClient();
+    if (!client && typeof supabase !== 'undefined' && supabase.auth) client = supabase;
+    if (!client && window.supabaseClient) client = window.supabaseClient;
 
     let session = null;
     if (client && client.auth) {
@@ -77,62 +53,48 @@ async function checkUserSession() {
             const { data } = await client.auth.getSession();
             session = data?.session || null;
         } catch (e) {
-            console.warn('[AUTH] getSession notice in checkUserSession:', e);
+            console.warn('[AUTH] getSession notice in syncNavbarState:', e);
         }
     }
 
     const cachedUser = getCachedUser();
     const currentUser = session?.user || cachedUser;
-    const navLink = document.getElementById('nav-login-link') || document.getElementById('nav-auth-btn');
+    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
 
-    if (navLink) {
-        navLink.style.visibility = 'visible';
+    if (authBtn) {
         if (session || currentUser) {
             // USER IS LOGGED IN
-            navLink.innerText = 'PROFILE';
-            navLink.setAttribute('href', 'profile.html');
+            authBtn.innerText = 'PROFILE';
+            authBtn.href = 'profile.html';
+            authBtn.style.visibility = 'visible';
+            authBtn.title = `Logged in as ${currentUser?.user_metadata?.full_name || currentUser?.name || currentUser?.email || 'User'}`;
         } else {
             // USER IS NOT LOGGED IN
-            navLink.innerText = 'LOGIN';
-            navLink.setAttribute('href', 'login.html');
+            authBtn.innerText = 'LOGIN';
+            authBtn.href = 'login.html';
+            authBtn.style.visibility = 'visible';
+            authBtn.removeAttribute('title');
         }
     }
 
-    const isIndex = isIndexPage();
-    const isLogin = isLoginPageCheck();
-    const isProfile = isProfilePage();
-    const isAuthPending = window.location.hash.includes('access_token') || window.location.search.includes('code=');
-
-    // 1. ROUTE REDIRECT: If on index.html / login.html right after OAuth callback, redirect to profile.html
-    if ((session || currentUser) && (isIndex || isLogin) && isAuthPending) {
-        cleanUrlHash();
-        window.location.href = 'profile.html';
-        return;
-    }
-
-    // 2. ROUTE GUARD: If unauthenticated user opens profile.html, redirect to index.html
+    // Dynamic Route Protection & Profile Hydration
+    const isProfile = window.location.pathname.toLowerCase().includes('profile');
     if (isProfile) {
-        if (!session && !currentUser && !isAuthPending) {
+        if (!session && !currentUser) {
             window.location.href = 'index.html';
             return;
         }
-
         if (currentUser) {
             hydrateProfilePage(currentUser);
         }
     }
-
-    // 3. CLEANUP URL HASH
-    if (isAuthPending) {
-        cleanUrlHash();
-    }
 }
 
-// Global Aliases for Backwards Compatibility
-window.checkUserSession = checkUserSession;
-window.updateAuthUI = checkUserSession;
-const renderAuthState = checkUserSession;
-const updateNavbarAuthUI = checkUserSession;
+// Global Aliases for Compatibility
+window.syncNavbarState = syncNavbarState;
+window.checkUserSession = syncNavbarState;
+window.updateAuthUI = syncNavbarState;
+const renderAuthState = syncNavbarState;
 
 // Hydrate profile.html DOM elements
 function hydrateProfilePage(user) {
@@ -189,10 +151,7 @@ async function logoutUser() {
     console.log('[AUTH] Logging out user...');
     setCachedUser(null);
 
-    let client = null;
-    if (typeof getSupabaseClient === 'function') client = getSupabaseClient();
-    if (!client && typeof supabase !== 'undefined' && supabase.auth) client = supabase;
-    if (!client && window.supabaseClient) client = window.supabaseClient;
+    let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
     if (client && client.auth) {
         try {
@@ -202,17 +161,14 @@ async function logoutUser() {
         }
     }
 
-    await checkUserSession();
+    await syncNavbarState();
     window.location.href = 'index.html';
 }
 
 // Google OAuth Initiator
 async function signInWithGoogle() {
     console.log('[AUTH] Starting Google Sign-In...');
-    let client = null;
-    if (typeof getSupabaseClient === 'function') client = getSupabaseClient();
-    if (!client && typeof supabase !== 'undefined' && supabase.auth) client = supabase;
-    if (!client && window.supabaseClient) client = window.supabaseClient;
+    let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
     if (!client || !client.auth) {
         alert('Supabase client is not initialized.');
@@ -235,10 +191,10 @@ async function signInWithGoogle() {
     }
 }
 
-// System Initializer & Event Listeners
-async function initAuthSystem() {
-    // 1. Initial check
-    await checkUserSession();
+// Event Listeners & Auth State Binder
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Initial execution on DOM load
+    syncNavbarState();
 
     // 2. Attach Google OAuth Click Listeners
     const googleBtns = document.querySelectorAll('#google-login-btn, #googleAuthBtn, .btn-google-auth');
@@ -251,30 +207,22 @@ async function initAuthSystem() {
             });
         }
     });
-
-    // 3. Listen for Auth State Changes
-    let client = null;
-    if (typeof getSupabaseClient === 'function') client = getSupabaseClient();
-    if (!client && typeof supabase !== 'undefined' && supabase.auth) client = supabase;
-    if (!client && window.supabaseClient) client = window.supabaseClient;
-
-    if (client && client.auth) {
-        client.auth.onAuthStateChange(async (event, session) => {
-            console.log('[AUTH] onAuthStateChange event:', event);
-
-            if (session?.user) {
-                setCachedUser(session.user);
-            } else if (event === 'SIGNED_OUT') {
-                setCachedUser(null);
-            }
-
-            await checkUserSession();
-        });
-    }
-}
-
-// Bind initialization on DOM Content Loaded
-document.addEventListener('DOMContentLoaded', () => {
-    checkUserSession();
-    initAuthSystem();
 });
+
+// 3. Listen for explicit auth state changes (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
+let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
+if (client && client.auth) {
+    client.auth.onAuthStateChange((event, session) => {
+        console.log('[AUTH] onAuthStateChange event:', event);
+
+        if (session?.user) {
+            setCachedUser(session.user);
+        } else if (event === 'SIGNED_OUT') {
+            setCachedUser(null);
+        }
+
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || (session && session.user)) {
+            syncNavbarState();
+        }
+    });
+}
