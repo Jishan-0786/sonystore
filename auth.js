@@ -1,12 +1,11 @@
 /**
- * SONY STORE - Customer Authentication & PROFILE Hydration Engine
+ * SONY STORE - Customer Authentication & Session Lock Engine
  * 
- * Features:
- * 1. loadUserProfile(user) populates Google user metadata (full_name, email, avatar_url/picture).
- * 2. Called whenever a valid session is detected inside onAuthStateChange or getSession().
- * 3. Prevents kicking user out of profile.html while window.location.hash.includes('access_token').
- * 4. Nav auth button click handler triggers Google OAuth if unauthenticated or opens profile.html if authenticated.
- * 5. Sign Out handler calls supabase.auth.signOut(), clears local cache, and redirects to index.html.
+ * Requirements:
+ * 1. Checks active session before triggering Google OAuth.
+ * 2. If logged in: Clicking #nav-auth-btn directly navigates to /profile.html without re-triggering Google OAuth.
+ * 3. If not logged in: Clicking #nav-auth-btn triggers Supabase Google OAuth.
+ * 4. Sign Out clears session via supabase.auth.signOut(), removes local cache, and redirects to /index.html.
  */
 
 // Local memory state helpers
@@ -69,45 +68,7 @@ function loadUserProfile(user) {
     }
 }
 
-// Bind Navbar Profile Click Handler
-function bindNavAuthButton() {
-    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
-    if (authBtn && !authBtn.dataset.clickBound) {
-        authBtn.dataset.clickBound = "true";
-        authBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
-
-            let session = null;
-            if (client && client.auth) {
-                try {
-                    const { data } = await client.auth.getSession();
-                    session = data?.session || null;
-                } catch (err) {}
-            }
-
-            const cachedUser = getCachedUser();
-            const currentUser = session?.user || cachedUser;
-
-            if (!session && !currentUser) {
-                console.log('[AUTH] User not logged in. Initiating Google OAuth...');
-                if (client && client.auth) {
-                    const { error } = await client.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: { redirectTo: window.location.origin + '/profile.html' }
-                    });
-                    if (error) alert("Login Error: " + (error.message || error));
-                }
-            } else {
-                if (!window.location.pathname.toLowerCase().includes('profile.html')) {
-                    window.location.href = 'profile.html';
-                }
-            }
-        });
-    }
-}
-
-// Sign Out Handler
+// SIGN OUT HANDLER
 async function logoutUser() {
     console.log('[AUTH] Logging out user...');
     setCachedUser(null);
@@ -130,10 +91,45 @@ window.loadUserProfile = loadUserProfile;
 window.hydrateProfilePage = loadUserProfile;
 window.logoutUser = logoutUser;
 
-// DOM Content Loaded Handler
+// DOM CONTENT LOADED EVENT LISTENER
 document.addEventListener('DOMContentLoaded', async () => {
-    bindNavAuthButton();
+    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
+    if (authBtn) {
+        authBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
 
+            let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
+
+            let session = null;
+            if (client && client.auth) {
+                try {
+                    const { data } = await client.auth.getSession();
+                    session = data?.session || null;
+                } catch (err) {}
+            }
+
+            const cachedUser = getCachedUser();
+            const currentUser = session?.user || cachedUser;
+
+            if (session || currentUser) {
+                // Already logged in -> Lock session and open profile directly
+                if (!window.location.pathname.toLowerCase().includes('profile.html')) {
+                    window.location.href = 'profile.html';
+                }
+            } else {
+                // Not logged in -> Trigger Google OAuth
+                if (client && client.auth) {
+                    const { error } = await client.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: { redirectTo: window.location.origin + '/profile.html' }
+                    });
+                    if (error) alert("Login Error: " + (error.message || error));
+                }
+            }
+        });
+    }
+
+    // Sign Out Button Event Listener
     const logoutBtn = document.getElementById('logout-btn') || document.getElementById('signOutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async (e) => {
@@ -148,7 +144,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.addEventListener('click', async (e) => {
             e.preventDefault();
             let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
+
+            let session = null;
             if (client && client.auth) {
+                try {
+                    const { data } = await client.auth.getSession();
+                    session = data?.session || null;
+                } catch (err) {}
+            }
+
+            const cachedUser = getCachedUser();
+            if (session || cachedUser) {
+                window.location.href = 'profile.html';
+            } else if (client && client.auth) {
                 const { error } = await client.auth.signInWithOAuth({
                     provider: 'google',
                     options: { redirectTo: window.location.origin + '/profile.html' }
@@ -158,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Initial session check
+    // Initial Session & Route Check
     let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
     if (client && client.auth) {
         try {
@@ -183,7 +191,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// ON AUTH STATE CHANGE LISTENER (Handles OAuth Hash Parsing & Redirects)
+// ON AUTH STATE CHANGE LISTENER
 let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
 if (client && client.auth) {
@@ -199,12 +207,10 @@ if (client && client.auth) {
                 authBtn.innerText = 'PROFILE';
             }
 
-            // Hydrate profile details when valid session is detected
             if (window.location.pathname.toLowerCase().includes('profile')) {
                 loadUserProfile(session.user);
             }
 
-            // If returning from Google Auth on index.html, move to profile.html
             if (window.location.hash.includes('access_token') && !window.location.pathname.toLowerCase().includes('profile')) {
                 window.location.href = 'profile.html';
                 return;
@@ -216,7 +222,6 @@ if (client && client.auth) {
 
             const cachedUser = getCachedUser();
             if (!cachedUser) {
-                // Only kick out if explicitly signed out and on profile page AND not parsing access_token hash
                 if (window.location.pathname.toLowerCase().includes('profile') && !window.location.hash.includes('access_token')) {
                     window.location.href = 'index.html';
                 }
