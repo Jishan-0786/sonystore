@@ -1,16 +1,26 @@
 /**
  * SONY STORE - Customer Authentication Engine
  * Single Source of Truth Session Management for Supabase Auth & Google OAuth.
- * Diagnostic Logging Instrumentation for Hash Session & getUser validation.
+ * Full Route Control, Profile Upsert & Clean URL Parameters.
  */
 
 // Global active user state & original DOM template cache
 let currentAuthUser = null;
 let originalLoginCardHtml = null;
 
+function isIndexPage() {
+    const p = window.location.pathname.toLowerCase();
+    return p === '/' || p.endsWith('/index.html') || p.endsWith('/index') || p === '';
+}
+
 function isLoginPage() {
     const p = window.location.pathname.toLowerCase();
     return p.endsWith('/login') || p.endsWith('/login.html') || p === '/login';
+}
+
+function isProfilePage() {
+    const p = window.location.pathname.toLowerCase();
+    return p.endsWith('/profile.html') || p.endsWith('/profile') || p.endsWith('/account.html') || p.endsWith('/account');
 }
 
 function getLoggedInUser() {
@@ -77,9 +87,12 @@ async function logoutUser() {
     }
     
     updateNavbarAuthState(null);
-    if (isLoginPage()) {
-        showLogin();
+
+    if (isProfilePage() || isLoginPage()) {
+        window.location.href = 'index.html';
+        return;
     }
+
     if (typeof showToast === 'function') showToast('Logged out successfully', '👋');
 }
 
@@ -93,20 +106,9 @@ function requireCustomerAuth(redirectUrl) {
     return true;
 }
 
-// Google OAuth Integration using existing Supabase client
+// Google OAuth Integration with explicit Netlify profile.html redirect
 async function signInWithGoogle() {
-    console.log('[DEBUG 1] Google sign-in start', { origin: window.location.origin });
-
-    const existingUser = getLoggedInUser();
-    if (existingUser) {
-        console.log('[DEBUG 6] User already logged in. Showing profile.');
-        if (isLoginPage()) {
-            showProfile(existingUser);
-        } else {
-            window.location.href = 'account.html';
-        }
-        return;
-    }
+    console.log('[AUTH] Google sign-in start', { origin: window.location.origin });
 
     const btn = document.getElementById('googleAuthBtn');
     const btnText = document.getElementById('googleAuthBtnText') || (btn ? btn.querySelector('span') : null);
@@ -130,13 +132,14 @@ async function signInWithGoogle() {
         const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
 
         if (!client || !client.auth) {
-            const noClientErr = new Error('Supabase client is not initialized. Ensure supabase.js is loaded.');
-            console.error('[DEBUG 1] Google sign-in start error:', noClientErr);
-            throw noClientErr;
+            throw new Error('Supabase client is not initialized.');
         }
 
-        const redirectTarget = window.location.origin + '/login';
-        console.log('[DEBUG 1] Calling signInWithOAuth with redirectTo:', redirectTarget);
+        const redirectTarget = window.location.origin.includes('sonywatchstore.netlify.app') 
+            ? 'https://sonywatchstore.netlify.app/profile.html' 
+            : window.location.origin + '/profile.html';
+
+        console.log('[AUTH] Calling signInWithOAuth with redirectTo:', redirectTarget);
 
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'google',
@@ -145,20 +148,14 @@ async function signInWithGoogle() {
             }
         });
 
-        console.log('[DEBUG 1] signInWithOAuth result:', { hasUrl: Boolean(data?.url), error });
-
-        if (error) {
-            console.error('[DEBUG 1] signInWithOAuth returned error:', error);
-            throw error;
-        }
+        if (error) throw error;
 
         if (data && data.url) {
-            console.log('[DEBUG 1] Navigating browser to OAuth authorization URL:', data.url);
             window.location.href = data.url;
         }
 
     } catch (err) {
-        console.error('[DEBUG 1] Google sign-in exception caught:', err);
+        console.error('[AUTH] Google sign-in exception:', err);
         resetGoogleButtonState();
 
         const errMessage = err ? (err.message || String(err)) : 'Unable to connect to Google OAuth';
@@ -210,18 +207,18 @@ async function signUpWithSupabaseEmail(email, password, phone, name) {
     return { success: false, error: 'Supabase client not initialized.' };
 }
 
-// Synchronize Supabase User Object & Create Profile if Missing
+// Synchronize Supabase User Object & Upsert Data into Supabase 'profiles' Table
 async function syncSupabaseSessionUser(user) {
-    console.log('[DEBUG 5] syncSupabaseSessionUser starting for user:', user?.id || null);
     if (!user) return;
 
-    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '';
-    const userPhone = user.user_metadata?.phone || '+977 9800000000';
-    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+    const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || '';
+    const userEmail = user.email || user.user_metadata?.email || '';
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
+    const userPhone = user.user_metadata?.phone || user.phone || '+977 9800000000';
 
     setLoggedInUser({
         id: user.id,
-        email: user.email,
+        email: userEmail,
         phone: userPhone,
         name: userName,
         avatar: avatarUrl,
@@ -231,48 +228,32 @@ async function syncSupabaseSessionUser(user) {
     const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
     if (client) {
         try {
-            const { data: existingProfile, error: fetchErr } = await client
+            console.log('[AUTH] Upserting user profile into profiles table:', user.id);
+            const { data: upsertedProfile, error: upsertErr } = await client
                 .from('profiles')
-                .select('id')
-                .eq('id', user.id)
-                .maybeSingle();
+                .upsert({
+                    id: user.id,
+                    email: userEmail,
+                    full_name: userName,
+                    avatar_url: avatarUrl,
+                    phone: userPhone,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'id' });
 
-            if (fetchErr) {
-                console.error('[DEBUG 5] Error checking existing profile:', fetchErr.message || fetchErr);
-            }
-
-            if (!existingProfile) {
-                console.log('[DEBUG 5] Creating new profile row for user ID:', user.id);
-                const { data: insertedProfile, error: insertErr } = await client
-                    .from('profiles')
-                    .insert([{
-                        id: user.id,
-                        email: user.email,
-                        full_name: userName,
-                        avatar_url: avatarUrl,
-                        phone: userPhone,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    }]);
-
-                if (insertErr) {
-                    console.error('[DEBUG 5] Error inserting new profile:', insertErr.message || insertErr);
-                } else {
-                    console.log('[DEBUG 5] Profile row created successfully:', insertedProfile);
-                }
+            if (upsertErr) {
+                console.error('[AUTH] Error upserting profile:', upsertErr.message || upsertErr);
             } else {
-                console.log('[DEBUG 5] Profile row already exists for user ID:', user.id);
+                console.log('[AUTH] Profile data upserted successfully:', upsertedProfile);
             }
         } catch (e) {
-            console.error('[DEBUG 5] Exception during profile check/creation:', e.message || e);
+            console.error('[AUTH] Exception during profile upsert:', e.message || e);
         }
     }
-    console.log('[DEBUG 5] syncSupabaseSessionUser completed');
 }
 
 // showLogin: Displays the existing login UI in the same container
 function showLogin() {
-    console.log('[DEBUG 6] showLogin CALLED');
+    console.log('[AUTH] showLogin CALLED');
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
 
@@ -294,11 +275,11 @@ function showLogin() {
     }
 }
 
-// showProfile: Hides login UI and creates/displays Profile UI in the same container
+// showProfile: Displays Profile UI in the container
 function showProfile(user) {
-    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
-    console.log('[DEBUG 6] showProfile CALLED:', { userId: user?.id || null, cardExists: Boolean(card), isLoginPage: isLoginPage() });
+    console.log('[AUTH] showProfile CALLED for user:', user?.id || null);
 
+    const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (!card) return;
 
     const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'Valued Client';
@@ -327,14 +308,13 @@ function showProfile(user) {
                 </div>
                 <div>
                     <button onclick="logoutUser()" class="account-nav-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4); padding: 10px 20px; font-weight: 700; margin: 0;">
-                        🚪 Logout
+                        🚪 Sign Out
                     </button>
                 </div>
             </div>
 
             <!-- PROFILE DASHBOARD GRID -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 28px;">
-                
                 <!-- MY ORDERS -->
                 <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
@@ -364,7 +344,6 @@ function showProfile(user) {
                     </div>
                     <button onclick="showToast('Security settings active', '🔒')" class="account-nav-btn" style="padding: 10px; width: 100%; text-align: center; font-size: 0.85rem; margin: 0;">Settings Overview</button>
                 </div>
-
             </div>
         </div>
     `;
@@ -374,18 +353,17 @@ function showProfile(user) {
 const showLoginPage = showLogin;
 const showProfilePage = showProfile;
 
-// Single Reusable Function to Update Navbar Authentication State
+// Update Navbar Authentication State Links Across Header
 function updateNavbarAuthState(session) {
     const user = session ? session.user : null;
-    console.log('[DEBUG 7] updateNavbarAuthState:', { sessionPresent: Boolean(session), user: user ? (user.email || user.id) : null });
-
     const navs = document.querySelectorAll('#mainNav, .main-nav');
 
     navs.forEach(nav => {
         let authLink = nav.querySelector('.nav-link-auth') || 
+                       nav.querySelector('a[href="profile.html"]') || 
+                       nav.querySelector('a[href="profile"]') || 
                        nav.querySelector('a[href="login.html"]') || 
                        nav.querySelector('a[href="login"]') || 
-                       nav.querySelector('a[href="/login"]') || 
                        nav.querySelector('a[href="account.html"]');
 
         if (!authLink) {
@@ -397,11 +375,10 @@ function updateNavbarAuthState(session) {
         }
 
         if (user) {
-            // User is authenticated via Supabase session -> Show PROFILE
             const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'PROFILE';
             const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
 
-            authLink.href = 'account.html';
+            authLink.href = 'profile.html';
             authLink.style.display = 'inline-flex';
             authLink.style.alignItems = 'center';
             authLink.style.gap = '6px';
@@ -413,13 +390,12 @@ function updateNavbarAuthState(session) {
                 authLink.innerHTML = `👤 <span>PROFILE</span>`;
             }
 
-            if (window.location.pathname.endsWith('account.html') || window.location.pathname.endsWith('orders.html')) {
+            if (isProfilePage()) {
                 authLink.classList.add('active');
             } else {
                 authLink.classList.remove('active');
             }
         } else {
-            // User is NOT authenticated -> Show LOGIN
             authLink.href = 'login.html';
             authLink.innerHTML = 'LOGIN';
             authLink.style.display = 'inline-block';
@@ -432,45 +408,19 @@ function updateNavbarAuthState(session) {
             }
         }
     });
-
-    if (isLoginPage()) {
-        if (user) {
-            showProfile(user);
-        } else {
-            showLogin();
-        }
-    }
 }
 
-// Fallback compatibility wrapper
-function updateAuthUI() {
-    const user = getLoggedInUser();
-    const mockSession = user && user.loggedIn ? { user: { id: user.id, email: user.email, user_metadata: { full_name: user.name, avatar_url: user.avatar } } } : null;
-    updateNavbarAuthState(mockSession);
-}
-
-// Immediate Page Load & OAuth Return Handler
+// Immediate Page Load & OAuth Return Handler with Route Redirect Control
 async function initAuthSystem() {
-    // Cache original login form markup if on login page
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (card && isLoginPage() && !originalLoginCardHtml) {
         originalLoginCardHtml = card.innerHTML;
     }
 
-    // Attach Google OAuth button listener if present on page
     const googleBtn = document.getElementById('googleAuthBtn');
     if (googleBtn) {
         googleBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            const existingUser = getLoggedInUser();
-            if (existingUser) {
-                if (isLoginPage()) {
-                    showProfile(existingUser);
-                } else {
-                    window.location.href = 'account.html';
-                }
-                return;
-            }
             signInWithGoogle();
         });
     }
@@ -479,61 +429,64 @@ async function initAuthSystem() {
         try {
             const client = getSupabaseClient();
             if (client && client.auth) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const authCode = urlParams.get('code');
-                const hasHashToken = window.location.hash.includes('access_token');
-
-                if (hasHashToken) {
-                    console.log('[SUPABASE] Hash session detected');
-                }
-
-                // 1. On every page load, fetch session
+                // 1. Check session on page load
                 const { data: { session }, error: sessionErr } = await client.auth.getSession();
                 console.log('[SUPABASE] getSession result:', session ? session : null);
-
-                let userResult = null;
-                let userError = null;
-                try {
-                    const res = await client.auth.getUser();
-                    userResult = res.data?.user || null;
-                    userError = res.error ? (res.error.message || String(res.error)) : null;
-                } catch (uErr) {
-                    userError = uErr.message || String(uErr);
-                }
-                console.log('[SUPABASE] getUser result/error:', userError || (userResult ? userResult : null));
 
                 if (session?.user) {
                     currentAuthUser = session.user;
                     await syncSupabaseSessionUser(session.user);
                     cleanUrlHash();
                     updateNavbarAuthState(session);
+
+                    // Route control for authenticated user
+                    if (isIndexPage()) {
+                        console.log('[AUTH] Session active on index page -> Redirecting to profile.html');
+                        window.location.href = 'profile.html';
+                        return;
+                    }
                     if (isLoginPage()) {
                         showProfile(session.user);
                     }
                 } else {
                     updateNavbarAuthState(null);
+                    // Route control for unauthenticated user
+                    if (isProfilePage()) {
+                        console.log('[AUTH] No session on profile page -> Redirecting to index.html');
+                        window.location.href = 'index.html';
+                        return;
+                    }
                     if (isLoginPage()) {
                         showLogin();
                     }
                     resetGoogleButtonState();
                 }
 
-                // 2. Listen for authentication changes (onAuthStateChange)
+                // 2. Listen for auth state changes
                 client.auth.onAuthStateChange(async (event, session) => {
-                    console.log('[SUPABASE] getSession result:', session ? session : null);
+                    console.log('[SUPABASE] onAuthStateChange event:', event, session ? session.user?.email : null);
 
                     if (session?.user) {
                         currentAuthUser = session.user;
                         await syncSupabaseSessionUser(session.user);
                         cleanUrlHash();
                         updateNavbarAuthState(session);
-                        if (isLoginPage()) {
-                            showProfile(session.user);
+
+                        if (event === 'SIGNED_IN') {
+                            if (isIndexPage() || isLoginPage()) {
+                                window.location.href = 'profile.html';
+                                return;
+                            }
                         }
                     } else {
                         currentAuthUser = null;
                         localStorage.removeItem('sony_store_user');
                         updateNavbarAuthState(null);
+
+                        if (isProfilePage()) {
+                            window.location.href = 'index.html';
+                            return;
+                        }
                         if (isLoginPage()) {
                             showLogin();
                         }
@@ -544,9 +497,6 @@ async function initAuthSystem() {
         } catch (e) {
             console.error('[AUTH] Auth system init error:', e);
             updateNavbarAuthState(null);
-            if (isLoginPage()) {
-                showLogin();
-            }
             resetGoogleButtonState();
         }
     }
