@@ -134,10 +134,10 @@
 <body>
 
     <!-- SITE HEADER -->
-    <header class="site-header">
+    <header class="site-header navbar">
         <div class="container">
             <div class="header-inner">
-                <a href="index.html" class="brand-logo">
+                <a href="index.html" class="brand-logo logo">
                     <div class="logo-badge">S</div>
                     <div>
                         <div>SONY STORE</div>
@@ -153,8 +153,8 @@
                     <a href="wishlist.html" class="nav-link">Wishlist</a>
                     <a href="about.html" class="nav-link">About</a>
                     <a href="contact.html" class="nav-link">Contact</a>
-                    <!-- Dynamic Auth Link (Hidden initially to prevent FOUC) -->
-                    <a href="login.html" class="nav-link nav-link-auth active" id="nav-auth-btn" style="visibility: hidden;">PROFILE</a>
+                    <!-- Dynamic Auth Link -->
+                    <a href="profile.html" class="nav-link nav-link-auth active" id="nav-auth-btn">PROFILE</a>
                 </nav>
 
                 <div class="header-actions">
@@ -174,68 +174,68 @@
     </header>
 
     <!-- PROFILE DASHBOARD SECTION -->
-    <section class="section" style="padding-top: 120px; padding-bottom: 80px;">
+    <section class="section profile-container" style="padding-top: 120px; padding-bottom: 80px;">
         <div class="container">
             
-            <div class="profile-dashboard-card" id="profileContainer">
+            <div class="profile-dashboard-card profile-card" id="profileContainer">
                 
                 <!-- USER PROFILE HEADER -->
-                <div class="profile-header-row">
+                <div class="profile-header-row user-header">
                     <div class="profile-avatar-wrapper" id="avatarBox">
-                        <img id="userAvatarImg" src="" alt="User Avatar" style="display: none;">
+                        <img id="user-avatar" src="" alt="User Avatar" class="avatar" style="display: none;">
                         <span id="avatarFallback">👤</span>
                     </div>
-                    <div class="profile-user-info">
+                    <div class="profile-user-info user-details">
                         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px;">
-                            <h1 class="profile-user-name" id="userNameHeading">Loading Profile...</h1>
-                            <span class="profile-status-badge" id="userStatusBadge">Active VIP Session</span>
+                            <h1 class="profile-user-name" id="user-name">Loading Profile...</h1>
+                            <span class="profile-status-badge status" id="userStatusBadge">Active VIP Session</span>
                         </div>
-                        <p class="profile-user-email" id="userEmailPara">✉️ Loading email...</p>
+                        <p class="profile-user-email" id="user-email">Loading email...</p>
                         <p style="color: var(--text-dim); font-size: 0.82rem; margin: 0;">
                             🔒 Authenticated via Supabase & Google OAuth
                         </p>
                     </div>
                     <div>
-                        <button onclick="logoutUser()" class="btn-logout" id="signOutBtn">
+                        <button class="btn-logout" id="logout-btn">
                             🚪 Sign Out
                         </button>
                     </div>
                 </div>
 
                 <!-- DASHBOARD TILES -->
-                <div class="profile-grid">
+                <div class="profile-grid dashboard-grid">
                     <!-- MY ORDERS -->
-                    <div class="profile-tile">
+                    <div class="profile-tile card">
                         <div>
                             <div class="profile-tile-icon">📦</div>
                             <h3 class="profile-tile-title">MY ORDERS</h3>
                             <p class="profile-tile-desc">Track your luxury timepiece orders, delivery status, and view complete purchase history.</p>
                         </div>
-                        <a href="orders.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">View Orders →</a>
+                        <a href="orders.html" class="btn-primary btn-gold" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">View Orders →</a>
                     </div>
 
                     <!-- SAVED WISHLIST -->
-                    <div class="profile-tile">
+                    <div class="profile-tile card">
                         <div>
                             <div class="profile-tile-icon">♥</div>
                             <h3 class="profile-tile-title">SAVED WISHLIST</h3>
                             <p class="profile-tile-desc">Access your saved timepieces and seamlessly transfer items to your shopping bag.</p>
                         </div>
-                        <a href="wishlist.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Explore Wishlist →</a>
+                        <a href="wishlist.html" class="btn-primary btn-gold" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Explore Wishlist →</a>
                     </div>
 
                     <!-- SAVED ADDRESSES -->
-                    <div class="profile-tile">
+                    <div class="profile-tile card">
                         <div>
                             <div class="profile-tile-icon">📍</div>
                             <h3 class="profile-tile-title">SAVED ADDRESSES</h3>
                             <p class="profile-tile-desc">Manage primary express shipping destination and billing addresses.</p>
                         </div>
-                        <a href="account.html" class="account-nav-btn" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem; margin: 0;">Manage Addresses</a>
+                        <a href="account.html" class="account-nav-btn btn-link" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem; margin: 0;">Manage Addresses</a>
                     </div>
 
                     <!-- ACCOUNT SECURITY -->
-                    <div class="profile-tile">
+                    <div class="profile-tile card">
                         <div>
                             <div class="profile-tile-icon">⚙️</div>
                             <h3 class="profile-tile-title">ACCOUNT SECURITY</h3>
@@ -306,6 +306,7 @@
     <script src="products.js"></script>
     <script src="supabase.js"></script>
     <script src="script.js"></script>
+    <script src="auth.js"></script>
     <script src="app.js"></script>
     <script src="cart.js"></script>
     <script src="animations.js"></script>
