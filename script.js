@@ -1,21 +1,21 @@
 /**
  * SONY STORE - Customer Authentication & Dynamic Navbar UI Engine
  * Features:
- * 1. Centralized renderAuthState() checking Supabase getSession() and localStorage cache.
- * 2. Dynamically replaces "LOGIN" link with "PROFILE" pointing to profile.html when logged in.
- * 3. Prevents FOUC & race conditions by firing on DOMContentLoaded and onAuthStateChange.
- * 4. Hydrates profile.html with Google avatar, full name, email, and working Sign Out listener.
+ * 1. Global updateAuthUI() function checking Supabase session & local cache.
+ * 2. Dynamically switches navbar link text to "PROFILE" (/profile.html) when authenticated, and "LOGIN" (/login.html) when unauthenticated.
+ * 3. Prevents FOUC & race conditions by executing on DOMContentLoaded and onAuthStateChange.
+ * 4. OAuth Callback Redirect: On index.html/login.html, if session is detected after OAuth callback, automatically redirects to /profile.html.
  * 5. Route Protection: Redirects unauthenticated users away from profile.html to index.html.
  * 6. Cleans up #access_token from URL address bar via window.history.replaceState.
  */
 
-// Helper functions for page route checking
+// Route helpers
 function isIndexPage() {
     const p = window.location.pathname.toLowerCase();
     return p === '/' || p.endsWith('/index.html') || p.endsWith('/index') || p === '';
 }
 
-function isLoginPage() {
+function isLoginPageCheck() {
     const p = window.location.pathname.toLowerCase();
     return p.endsWith('/login') || p.endsWith('/login.html') || p === '/login';
 }
@@ -25,7 +25,7 @@ function isProfilePage() {
     return p.endsWith('/profile.html') || p.endsWith('/profile') || p.endsWith('/account.html') || p.endsWith('/account');
 }
 
-// Local caching for instant navbar render (zero FOUC)
+// Local cache for zero-flicker instant navbar render
 function getCachedUser() {
     try {
         const stored = JSON.parse(localStorage.getItem('sony_store_user'));
@@ -50,8 +50,16 @@ function setCachedUser(user) {
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
 }
 
-// CENTRALIZED RENDER AUTH STATE FUNCTION
-async function renderAuthState() {
+function cleanUrlHash() {
+    if (window.location.hash || window.location.search.includes('code=')) {
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, document.title, window.location.pathname);
+        }
+    }
+}
+
+// GLOBAL DYNAMIC NAVBAR SWITCH FUNCTION
+async function updateAuthUI() {
     let client = null;
     if (typeof getSupabaseClient === 'function') {
         client = getSupabaseClient();
@@ -69,7 +77,7 @@ async function renderAuthState() {
             const res = await client.auth.getSession();
             session = res.data?.session || null;
         } catch (e) {
-            console.warn('[AUTH] getSession error in renderAuthState:', e);
+            console.warn('[AUTH] getSession notice in updateAuthUI:', e);
         }
     }
 
@@ -95,13 +103,21 @@ async function renderAuthState() {
         }
     }
 
-    // Dynamic Route Guard & Profile Page Hydration
+    const isIndex = isIndexPage();
+    const isLoginPage = isLoginPageCheck();
     const isProfile = isProfilePage();
     const isAuthPending = window.location.hash.includes('access_token') || window.location.search.includes('code=');
 
+    // 1. ROUTE REDIRECT: If on index.html / login.html right after OAuth callback, redirect to profile.html
+    if ((session || currentUser) && (isIndex || isLoginPage) && isAuthPending) {
+        cleanUrlHash();
+        window.location.href = 'profile.html';
+        return;
+    }
+
+    // 2. ROUTE GUARD: If unauthenticated user opens profile.html, redirect to index.html
     if (isProfile) {
         if (!session && !currentUser && !isAuthPending) {
-            // Unauthenticated user -> redirect to index.html
             window.location.href = 'index.html';
             return;
         }
@@ -111,13 +127,16 @@ async function renderAuthState() {
         }
     }
 
-    // URL Token Cleanup
+    // 3. CLEANUP URL HASH
     if (isAuthPending) {
-        if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, document.title, window.location.pathname);
-        }
+        cleanUrlHash();
     }
 }
+
+// Global Aliases
+window.updateAuthUI = updateAuthUI;
+const renderAuthState = updateAuthUI;
+const updateNavbarAuthUI = updateAuthUI;
 
 // Hydrate profile.html DOM elements
 function hydrateProfilePage(user) {
@@ -187,7 +206,7 @@ async function logoutUser() {
         }
     }
 
-    await renderAuthState();
+    await updateAuthUI();
     window.location.href = 'index.html';
 }
 
@@ -222,8 +241,8 @@ async function signInWithGoogle() {
 
 // System Initializer
 async function initAuthSystem() {
-    // 1. Centralized renderAuthState call on load
-    await renderAuthState();
+    // 1. Run updateAuthUI on initialization
+    await updateAuthUI();
 
     // 2. Attach Google OAuth Click Listeners
     const googleBtns = document.querySelectorAll('#google-login-btn, #googleAuthBtn, .btn-google-auth');
@@ -253,7 +272,7 @@ async function initAuthSystem() {
                 setCachedUser(null);
             }
 
-            await renderAuthState();
+            await updateAuthUI();
         });
     }
 }
