@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile | SONY STORE Luxury Timepieces</title>
-    <meta name="description" content="Manage your SONY STORE luxury timepiece account, orders, wishlist, and profile settings.">
+    <meta name="description" content="Manage your SONY STORE luxury timepiece account, orders, wishlist, saved addresses, and profile settings.">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="responsive.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,9 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .profile-dashboard-card {
-            max-width: 900px;
+            max-width: 960px;
             margin: 40px auto;
-            padding: 40px 30px;
+            padding: 40px 32px;
             background: rgba(18, 20, 29, 0.85);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
@@ -69,7 +69,7 @@
             background: rgba(16, 185, 129, 0.15);
             color: var(--success);
             border: 1px solid rgba(16, 185, 129, 0.3);
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: var(--radius-full);
             font-size: 0.75rem;
             font-weight: 600;
@@ -145,6 +145,7 @@
                     </div>
                 </a>
 
+                <!-- NAVIGATION BAR -->
                 <nav class="main-nav" id="mainNav">
                     <a href="index.html" class="nav-link">Home</a>
                     <a href="shop.html" class="nav-link">Watches</a>
@@ -152,7 +153,8 @@
                     <a href="wishlist.html" class="nav-link">Wishlist</a>
                     <a href="about.html" class="nav-link">About</a>
                     <a href="contact.html" class="nav-link">Contact</a>
-                    <a href="login.html" class="nav-link nav-link-auth" id="nav-auth-btn" style="visibility: hidden;">LOGIN</a>
+                    <!-- Dynamic Auth Link (Hidden initially to prevent FOUC) -->
+                    <a href="login.html" class="nav-link nav-link-auth active" id="nav-auth-btn" style="visibility: hidden;">PROFILE</a>
                 </nav>
 
                 <div class="header-actions">
@@ -171,7 +173,7 @@
         </div>
     </header>
 
-    <!-- PROFILE MAIN DASHBOARD SECTION -->
+    <!-- PROFILE DASHBOARD SECTION -->
     <section class="section" style="padding-top: 120px; padding-bottom: 80px;">
         <div class="container">
             
@@ -184,9 +186,9 @@
                         <span id="avatarFallback">👤</span>
                     </div>
                     <div class="profile-user-info">
-                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px;">
                             <h1 class="profile-user-name" id="userNameHeading">Loading Profile...</h1>
-                            <span class="profile-status-badge">VIP VERIFIED MEMBER</span>
+                            <span class="profile-status-badge" id="userStatusBadge">Active VIP Session</span>
                         </div>
                         <p class="profile-user-email" id="userEmailPara">✉️ Loading email...</p>
                         <p style="color: var(--text-dim); font-size: 0.82rem; margin: 0;">
@@ -207,7 +209,7 @@
                         <div>
                             <div class="profile-tile-icon">📦</div>
                             <h3 class="profile-tile-title">MY ORDERS</h3>
-                            <p class="profile-tile-desc">Track your luxury timepiece orders and view complete purchase history.</p>
+                            <p class="profile-tile-desc">Track your luxury timepiece orders, delivery status, and view complete purchase history.</p>
                         </div>
                         <a href="orders.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">View Orders →</a>
                     </div>
@@ -217,9 +219,19 @@
                         <div>
                             <div class="profile-tile-icon">♥</div>
                             <h3 class="profile-tile-title">SAVED WISHLIST</h3>
-                            <p class="profile-tile-desc">Access your favorite saved watches and seamlessly move them to your bag.</p>
+                            <p class="profile-tile-desc">Access your saved timepieces and seamlessly transfer items to your shopping bag.</p>
                         </div>
                         <a href="wishlist.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Explore Wishlist →</a>
+                    </div>
+
+                    <!-- SAVED ADDRESSES -->
+                    <div class="profile-tile">
+                        <div>
+                            <div class="profile-tile-icon">📍</div>
+                            <h3 class="profile-tile-title">SAVED ADDRESSES</h3>
+                            <p class="profile-tile-desc">Manage primary express shipping destination and billing addresses.</p>
+                        </div>
+                        <a href="account.html" class="account-nav-btn" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem; margin: 0;">Manage Addresses</a>
                     </div>
 
                     <!-- ACCOUNT SECURITY -->
