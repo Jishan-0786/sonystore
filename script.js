@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine & Page Route Controller
- * Reusable updateNavbarAuthUI() implementation.
- * Directly mutates #nav-login-btn to switch between LOGIN and MY PROFILE.
+ * Prevents FOUC (Flash of Unauthenticated Content) on navbar loading.
+ * Immediately resolves session & unhides #nav-auth-btn with visibility: visible.
  */
 
 // Global active user state & original DOM template cache
@@ -373,7 +373,7 @@ function showProfile(user) {
 const showLoginPage = showLogin;
 const showProfilePage = showProfile;
 
-// 1. HEADER NAVBAR DYNAMIC STATE LOGIC (updateNavbarAuthUI)
+// HEADER NAVBAR DYNAMIC STATE LOGIC (PREVENTS FOUC)
 async function updateNavbarAuthUI(sessionArg) {
     let session = sessionArg;
     if (typeof session === 'undefined' && typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
@@ -392,7 +392,8 @@ async function updateNavbarAuthUI(sessionArg) {
     const navs = document.querySelectorAll('#mainNav, .main-nav');
 
     navs.forEach(nav => {
-        let authLink = nav.querySelector('#nav-login-btn') || 
+        let authLink = nav.querySelector('#nav-auth-btn') || 
+                       nav.querySelector('#nav-login-btn') || 
                        nav.querySelector('.nav-link-auth') || 
                        Array.from(nav.querySelectorAll('a')).find(a => {
                            const t = (a.textContent || '').trim().toUpperCase();
@@ -403,11 +404,11 @@ async function updateNavbarAuthUI(sessionArg) {
 
         if (!authLink) {
             authLink = document.createElement('a');
-            authLink.id = 'nav-login-btn';
+            authLink.id = 'nav-auth-btn';
             authLink.className = 'nav-link nav-link-auth';
             nav.appendChild(authLink);
         } else {
-            authLink.id = 'nav-login-btn';
+            authLink.id = 'nav-auth-btn';
             authLink.classList.add('nav-link-auth');
         }
 
@@ -444,14 +445,23 @@ async function updateNavbarAuthUI(sessionArg) {
                 authLink.classList.remove('active');
             }
         }
+
+        // FOUC FIX: UNHIDE BUTTON ONCE STATE IS COMPUTED
+        authLink.style.visibility = 'visible';
     });
 }
 
 // Alias for backwards compatibility
 const updateNavbarAuthState = updateNavbarAuthUI;
 
-// 2. DOM EVENT LISTENER & INIT HANDLER
+// FAST INITIAL LOAD & DOM EVENT LISTENER
 async function initAuthSystem() {
+    // 0. Synchronous instant cache check for zero-flicker FOUC prevention
+    const cachedUser = getLoggedInUser();
+    if (cachedUser) {
+        updateNavbarAuthUI({ user: cachedUser });
+    }
+
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (card && isLoginPage() && !originalLoginCardHtml) {
         originalLoginCardHtml = card.innerHTML;
