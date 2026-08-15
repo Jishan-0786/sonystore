@@ -182,22 +182,22 @@
                 <!-- USER PROFILE HEADER -->
                 <div class="profile-header-row user-header">
                     <div class="profile-avatar-wrapper" id="avatarBox">
-                        <img id="user-avatar" src="" alt="Profile Picture" class="avatar w-24 h-24 rounded-full" style="display: none;">
-                        <span id="avatarFallback">👤</span>
+                        <img id="user-avatar" src="" alt="Profile Picture" class="avatar w-24 h-24 rounded-full border-2 border-indigo-500" />
+                        <span id="avatarFallback" style="display: none;">👤</span>
                     </div>
                     <div class="profile-user-info user-details">
                         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px;">
-                            <h2 class="profile-user-name" id="user-name">Loading...</h2>
+                            <h2 id="user-name" class="profile-user-name text-xl font-bold">User</h2>
                             <span class="profile-status-badge status" id="userStatusBadge">Active VIP Session</span>
                         </div>
-                        <p class="profile-user-email" id="user-email">Loading...</p>
+                        <p id="user-email" class="profile-user-email text-gray-500">email@example.com</p>
                         <p style="color: var(--text-dim); font-size: 0.82rem; margin: 0;">
                             🔒 Authenticated via Supabase & Google OAuth
                         </p>
                     </div>
                     <div>
                         <button class="btn-logout" id="logout-btn">
-                            🚪 Sign Out
+                            Sign Out
                         </button>
                     </div>
                 </div>
