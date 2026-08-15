@@ -1,10 +1,10 @@
 /**
- * SONY STORE - Master Auth Guard & Profile Hydration Engine
+ * SONY STORE - Master Auth Guard & Immediate OAuth Redirect Engine
  * 
- * Fixes 1-second redirect loop:
- * 1. Uses onAuthStateChange to wait for initial session resolution before making route decisions.
- * 2. ONLY redirects away from profile.html if event === 'SIGNED_OUT' or session resolves to null without cached user.
- * 3. populateUserProfile(user) populates Google user-name, user-email, user-avatar.
+ * Rules:
+ * 1. signInWithOAuth options set redirectTo: window.location.origin + '/profile.html'.
+ * 2. Inside onAuthStateChange, if event === 'SIGNED_IN' and not on profile.html, redirects immediately to /profile.html.
+ * 3. populateUserProfile(user) hydrates Google user metadata (name, email, avatar).
  * 4. Nav button click triggers Google OAuth when logged out, or opens profile.html when logged in.
  * 5. Logout button calls supabase.auth.signOut() and redirects to index.html.
  */
@@ -76,16 +76,16 @@ window.populateProfileData = populateUserProfile;
 
 // Master Auth Guard
 document.addEventListener('DOMContentLoaded', async () => {
-    // Clean hash token from URL address bar
-    if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code=')) {
+    // Clean hash token from URL address bar if already on target page
+    const currentPath = window.location.pathname.toLowerCase();
+    const isProfilePage = currentPath.includes('profile.html') || currentPath.endsWith('/profile');
+    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
+
+    if (isProfilePage && (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token') || window.location.search.includes('code='))) {
         if (window.history && window.history.replaceState) {
             window.history.replaceState(null, '', window.location.pathname);
         }
     }
-
-    const currentPath = window.location.pathname.toLowerCase();
-    const isProfilePage = currentPath.includes('profile.html') || currentPath.endsWith('/profile');
-    const authBtn = document.getElementById('nav-auth-btn') || document.getElementById('nav-login-link');
 
     let client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (typeof supabase !== 'undefined' ? supabase : window.supabaseClient);
 
@@ -115,6 +115,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     authBtn.style.visibility = 'visible';
                 }
 
+                // If event is SIGNED_IN (or OAuth hash present), move directly to profile.html
+                if ((event === 'SIGNED_IN' || window.location.hash.includes('access_token')) && !window.location.pathname.toLowerCase().includes('profile.html')) {
+                    window.location.href = 'profile.html';
+                    return;
+                }
+
                 if (isProfilePage) {
                     populateUserProfile(session.user);
                 }
@@ -141,6 +147,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (session?.user) {
                 setCachedUser(session.user);
                 if (authBtn) authBtn.innerText = 'PROFILE';
+
+                if (window.location.hash.includes('access_token') && !window.location.pathname.toLowerCase().includes('profile.html')) {
+                    window.location.href = 'profile.html';
+                    return;
+                }
+
                 if (isProfilePage) populateUserProfile(session.user);
             } else if (!cachedUser && isProfilePage && !window.location.hash.includes('access_token')) {
                 window.location.href = 'index.html';
