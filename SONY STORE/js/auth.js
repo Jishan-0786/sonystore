@@ -1,7 +1,7 @@
 /**
  * SONY STORE - Customer Authentication Engine & Page Route Controller
- * Senior Frontend Developer Authentication Lifecycle Implementation.
- * Fixes: Dynamic Profile Data Fetching, Dynamic Navbar LOGIN/PROFILE state, Hash Cleanup.
+ * Reusable updateNavbarAuthUI() implementation.
+ * Directly mutates #nav-login-btn to switch between LOGIN and MY PROFILE.
  */
 
 // Global active user state & original DOM template cache
@@ -65,7 +65,6 @@ function resetGoogleButtonState() {
     }
 }
 
-// ISSUE 3 FIX: URL HASH CLEANUP IMMEDIATELY AFTER SESSION LOADING
 function cleanUrlHash() {
     if (window.location.hash || window.location.search.includes('code=')) {
         if (window.history && window.history.replaceState) {
@@ -87,7 +86,7 @@ async function logoutUser() {
         }
     }
     
-    updateNavbarAuthState(null);
+    await updateNavbarAuthUI(null);
 
     if (isProfilePage() || isLoginPage()) {
         window.location.href = 'index.html';
@@ -107,7 +106,7 @@ function requireCustomerAuth(redirectUrl) {
     return true;
 }
 
-// Dynamic Google OAuth Initiator
+// Google OAuth Initiator
 async function signInWithGoogle() {
     console.log('[AUTH] Google sign-in start', { origin: window.location.origin });
 
@@ -249,7 +248,7 @@ async function syncSupabaseSessionUser(user) {
     }
 }
 
-// ISSUE 1 FIX: RENDER USER DETAILS INTO HTML DOM ELEMENTS
+// Render User Details into Profile HTML Elements
 function renderProfilePage(user) {
     if (!user) return;
 
@@ -289,7 +288,6 @@ function showLogin() {
         card.style.padding = '';
         card.innerHTML = originalLoginCardHtml;
         
-        // Re-attach Google button event listener
         const googleBtn = document.getElementById('googleAuthBtn');
         if (googleBtn) {
             googleBtn.addEventListener('click', (e) => {
@@ -301,7 +299,7 @@ function showLogin() {
     }
 }
 
-// showProfile: Displays Profile UI in the container
+// showProfile: Displays Profile UI in container
 function showProfile(user) {
     console.log('[AUTH] showProfile CALLED for user:', user?.id || null);
     renderProfilePage(user);
@@ -320,7 +318,6 @@ function showProfile(user) {
 
     card.innerHTML = `
         <div class="profile-dashboard-view" style="text-align: left;">
-            <!-- PROFILE HEADER -->
             <div style="display: flex; align-items: center; gap: 24px; padding-bottom: 28px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap;">
                 <div style="width: 84px; height: 84px; border-radius: 50%; background: var(--gold-gradient); color: #000; font-size: 2.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--gold-light); flex-shrink: 0; box-shadow: 0 0 15px var(--gold-glow);">
                     ${userAvatar ? `<img src="${userAvatar}" alt="${userName}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}
@@ -340,9 +337,7 @@ function showProfile(user) {
                 </div>
             </div>
 
-            <!-- PROFILE DASHBOARD GRID -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 28px;">
-                <!-- MY ORDERS -->
                 <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <div style="font-size: 1.8rem; margin-bottom: 8px;">📦</div>
@@ -352,7 +347,6 @@ function showProfile(user) {
                     <a href="orders.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">View Orders →</a>
                 </div>
 
-                <!-- WISHLIST -->
                 <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <div style="font-size: 1.8rem; margin-bottom: 8px;">♥</div>
@@ -362,7 +356,6 @@ function showProfile(user) {
                     <a href="wishlist.html" class="btn-primary" style="padding: 10px; text-align: center; text-decoration: none; font-size: 0.85rem;">Saved Items →</a>
                 </div>
 
-                <!-- ACCOUNT SETTINGS -->
                 <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <div style="font-size: 1.8rem; margin-bottom: 8px;">⚙️</div>
@@ -380,29 +373,46 @@ function showProfile(user) {
 const showLoginPage = showLogin;
 const showProfilePage = showProfile;
 
-// ISSUE 2 FIX: DYNAMIC HEADER / NAVBAR UPDATE (LOGIN -> PROFILE)
-function updateNavbarAuthState(session) {
+// 1. HEADER NAVBAR DYNAMIC STATE LOGIC (updateNavbarAuthUI)
+async function updateNavbarAuthUI(sessionArg) {
+    let session = sessionArg;
+    if (typeof session === 'undefined' && typeof isSupabaseAvailable === 'function' && isSupabaseAvailable()) {
+        try {
+            const client = getSupabaseClient();
+            if (client && client.auth) {
+                const res = await client.auth.getSession();
+                session = res.data?.session || null;
+            }
+        } catch (e) {
+            console.warn('[AUTH] getSession error in updateNavbarAuthUI:', e);
+        }
+    }
+
     const user = session ? session.user : (typeof getLoggedInUser === 'function' ? getLoggedInUser() : null);
     const navs = document.querySelectorAll('#mainNav, .main-nav');
 
     navs.forEach(nav => {
-        let authLink = nav.querySelector('.nav-link-auth') || 
-                       nav.querySelector('a[href="profile.html"]') || 
-                       nav.querySelector('a[href="profile"]') || 
-                       nav.querySelector('a[href="login.html"]') || 
-                       nav.querySelector('a[href="login"]') || 
-                       nav.querySelector('a[href="account.html"]');
+        let authLink = nav.querySelector('#nav-login-btn') || 
+                       nav.querySelector('.nav-link-auth') || 
+                       Array.from(nav.querySelectorAll('a')).find(a => {
+                           const t = (a.textContent || '').trim().toUpperCase();
+                           const h = (a.getAttribute('href') || '').toLowerCase();
+                           return t.includes('LOGIN') || t.includes('PROFILE') || t.includes('MY ACCOUNT') ||
+                                  h.includes('login') || h.includes('profile') || h.includes('account');
+                       });
 
         if (!authLink) {
             authLink = document.createElement('a');
+            authLink.id = 'nav-login-btn';
             authLink.className = 'nav-link nav-link-auth';
             nav.appendChild(authLink);
         } else {
+            authLink.id = 'nav-login-btn';
             authLink.classList.add('nav-link-auth');
         }
 
         if (user && (user.email || user.id)) {
-            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'PROFILE';
+            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || user.email?.split('@')[0] || 'MY PROFILE';
             const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
 
             authLink.href = 'profile.html';
@@ -412,9 +422,9 @@ function updateNavbarAuthState(session) {
             authLink.title = `${userName} (${user.email || ''})`;
 
             if (avatarUrl) {
-                authLink.innerHTML = `<img src="${avatarUrl}" alt="${userName}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>PROFILE</span>`;
+                authLink.innerHTML = `<img src="${avatarUrl}" alt="${userName}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-light); vertical-align: middle;"> <span>MY PROFILE</span>`;
             } else {
-                authLink.innerHTML = `👤 <span>PROFILE</span>`;
+                authLink.innerHTML = `👤 <span>MY PROFILE</span>`;
             }
 
             if (isProfilePage()) {
@@ -437,7 +447,10 @@ function updateNavbarAuthState(session) {
     });
 }
 
-// Immediate Page Load & OAuth Return Handler
+// Alias for backwards compatibility
+const updateNavbarAuthState = updateNavbarAuthUI;
+
+// 2. DOM EVENT LISTENER & INIT HANDLER
 async function initAuthSystem() {
     const card = document.querySelector('.auth-card') || document.querySelector('.glass-panel');
     if (card && isLoginPage() && !originalLoginCardHtml) {
@@ -479,12 +492,9 @@ async function initAuthSystem() {
                 if (session?.user) {
                     currentAuthUser = session.user;
                     await syncSupabaseSessionUser(session.user);
-
-                    // ISSUE 3 FIX: URL HASH CLEANUP IMMEDIATELY AFTER getSession()
                     cleanUrlHash();
 
-                    // ISSUE 1 & 2 FIX: DYNAMIC DOM & NAVBAR UPDATE
-                    updateNavbarAuthState(session);
+                    await updateNavbarAuthUI(session);
                     renderProfilePage(session.user);
 
                     if (isIndexPage() || isLoginPage()) {
@@ -495,9 +505,9 @@ async function initAuthSystem() {
                     const localUser = getLoggedInUser();
                     if (localUser && isProfilePage()) {
                         renderProfilePage(localUser);
-                        updateNavbarAuthState({ user: localUser });
+                        await updateNavbarAuthUI({ user: localUser });
                     } else {
-                        updateNavbarAuthState(null);
+                        await updateNavbarAuthUI(null);
                         if (isProfilePage() && !isAuthCallbackPending) {
                             window.location.href = 'index.html';
                             return;
@@ -516,12 +526,9 @@ async function initAuthSystem() {
                     if (session?.user) {
                         currentAuthUser = session.user;
                         await syncSupabaseSessionUser(session.user);
-
-                        // ISSUE 3 FIX: URL HASH CLEANUP
                         cleanUrlHash();
 
-                        // ISSUE 1 & 2 FIX: DYNAMIC DOM & NAVBAR UPDATE
-                        updateNavbarAuthState(session);
+                        await updateNavbarAuthUI(session);
                         renderProfilePage(session.user);
 
                         if (event === 'SIGNED_IN' || isAuthCallbackPending) {
@@ -534,7 +541,7 @@ async function initAuthSystem() {
                         if (event === 'SIGNED_OUT') {
                             currentAuthUser = null;
                             localStorage.removeItem('sony_store_user');
-                            updateNavbarAuthState(null);
+                            await updateNavbarAuthUI(null);
 
                             if (isProfilePage()) {
                                 window.location.href = 'index.html';
@@ -550,9 +557,11 @@ async function initAuthSystem() {
             }
         } catch (e) {
             console.error('[AUTH] Auth system init error:', e);
-            updateNavbarAuthState(null);
+            updateNavbarAuthUI(null);
             resetGoogleButtonState();
         }
+    } else {
+        updateNavbarAuthUI();
     }
 }
 
