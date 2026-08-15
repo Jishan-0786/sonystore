@@ -1,11 +1,12 @@
 /**
- * SONY STORE - Customer Authentication & PROFILE Navbar Engine
+ * SONY STORE - Customer Authentication & PROFILE Hydration Engine
  * 
- * Fixes OAuth hash parsing race condition:
- * 1. Listens to onAuthStateChange (INITIAL_SESSION, SIGNED_IN) before redirecting or kicking out.
- * 2. Prevents kicking user out of profile.html while window.location.hash.includes('access_token').
- * 3. #nav-auth-btn click handler opens profile.html if logged in, or triggers Google OAuth if logged out.
- * 4. Sign Out handler calls supabase.auth.signOut(), clears local cache, and redirects to index.html.
+ * Features:
+ * 1. loadUserProfile(user) populates Google user metadata (full_name, email, avatar_url/picture).
+ * 2. Called whenever a valid session is detected inside onAuthStateChange or getSession().
+ * 3. Prevents kicking user out of profile.html while window.location.hash.includes('access_token').
+ * 4. Nav auth button click handler triggers Google OAuth if unauthenticated or opens profile.html if authenticated.
+ * 5. Sign Out handler calls supabase.auth.signOut(), clears local cache, and redirects to index.html.
  */
 
 // Local memory state helpers
@@ -33,40 +34,38 @@ function setCachedUser(user) {
     localStorage.setItem('sony_store_user', JSON.stringify(userData));
 }
 
-// Hydrate Profile Page DOM
-function hydrateProfilePage(user) {
+// DYNAMIC PROFILE HYDRATION LOGIC
+function loadUserProfile(user) {
     if (!user) return;
 
-    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.name || (user.email ? user.email.split('@')[0] : 'Valued Client');
-    const email = user.email || user.user_metadata?.email || '';
-    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || user.avatar || '';
-
-    const nameEl = document.getElementById('user-name') || document.getElementById('userNameHeading') || document.getElementById('userName');
-    if (nameEl) nameEl.textContent = fullName;
-
-    const emailEl = document.getElementById('user-email') || document.getElementById('userEmailPara') || document.getElementById('userEmail');
-    if (emailEl) emailEl.textContent = email ? `✉️ ${email}` : '';
-
-    const avatarImg = document.getElementById('user-avatar') || document.getElementById('userAvatarImg');
+    const avatarEl = document.getElementById('user-avatar');
+    const nameEl = document.getElementById('user-name');
+    const emailEl = document.getElementById('user-email');
     const avatarFallback = document.getElementById('avatarFallback');
-    const avatarBox = document.getElementById('avatarBox');
 
-    if (avatarImg) {
-        if (avatarUrl) {
-            avatarImg.src = avatarUrl;
-            avatarImg.alt = fullName;
-            avatarImg.style.display = 'block';
-            if (avatarFallback) avatarFallback.style.display = 'none';
-        } else {
-            avatarImg.style.display = 'none';
-            if (avatarFallback) avatarFallback.style.display = 'inline-block';
-        }
-    } else if (avatarBox) {
-        if (avatarUrl) {
-            avatarBox.innerHTML = `<img src="${avatarUrl}" alt="${fullName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-        } else {
-            avatarBox.innerHTML = `<span>👤</span>`;
-        }
+    // Extract Google User Metadata
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || 'User';
+    const email = user.email || user.user_metadata?.email || '';
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || 'https://via.placeholder.com/150';
+
+    if (nameEl) nameEl.innerText = fullName;
+    if (emailEl) emailEl.innerText = email;
+    if (avatarEl) {
+        avatarEl.src = avatarUrl;
+        avatarEl.style.display = 'block';
+        if (avatarFallback) avatarFallback.style.display = 'none';
+    }
+
+    // Secondary fallback IDs for maximum compatibility
+    const userNameHeading = document.getElementById('userNameHeading');
+    const userEmailPara = document.getElementById('userEmailPara');
+    const userAvatarImg = document.getElementById('userAvatarImg');
+
+    if (userNameHeading) userNameHeading.innerText = fullName;
+    if (userEmailPara) userEmailPara.innerText = email;
+    if (userAvatarImg) {
+        userAvatarImg.src = avatarUrl;
+        userAvatarImg.style.display = 'block';
     }
 }
 
@@ -127,6 +126,8 @@ async function logoutUser() {
 }
 
 // Global Aliases
+window.loadUserProfile = loadUserProfile;
+window.hydrateProfilePage = loadUserProfile;
 window.logoutUser = logoutUser;
 
 // DOM Content Loaded Handler
@@ -167,15 +168,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (session?.user) {
                 setCachedUser(session.user);
-                if (window.location.pathname.includes('profile.html')) {
-                    hydrateProfilePage(session.user);
+                if (window.location.pathname.toLowerCase().includes('profile')) {
+                    loadUserProfile(session.user);
                 }
             } else if (!window.location.hash.includes('access_token')) {
                 const cachedUser = getCachedUser();
-                if (!cachedUser && window.location.pathname.includes('profile.html')) {
+                if (!cachedUser && window.location.pathname.toLowerCase().includes('profile')) {
                     window.location.href = 'index.html';
-                } else if (cachedUser && window.location.pathname.includes('profile.html')) {
-                    hydrateProfilePage(cachedUser);
+                } else if (cachedUser && window.location.pathname.toLowerCase().includes('profile')) {
+                    loadUserProfile(cachedUser);
                 }
             }
         } catch (e) {}
@@ -198,14 +199,15 @@ if (client && client.auth) {
                 authBtn.innerText = 'PROFILE';
             }
 
-            // If returning from Google Auth on index.html, move to profile.html
-            if (window.location.hash.includes('access_token') && !window.location.pathname.includes('profile.html')) {
-                window.location.href = 'profile.html';
-                return;
+            // Hydrate profile details when valid session is detected
+            if (window.location.pathname.toLowerCase().includes('profile')) {
+                loadUserProfile(session.user);
             }
 
-            if (window.location.pathname.includes('profile.html')) {
-                hydrateProfilePage(session.user);
+            // If returning from Google Auth on index.html, move to profile.html
+            if (window.location.hash.includes('access_token') && !window.location.pathname.toLowerCase().includes('profile')) {
+                window.location.href = 'profile.html';
+                return;
             }
         } else {
             if (authBtn) {
@@ -215,11 +217,11 @@ if (client && client.auth) {
             const cachedUser = getCachedUser();
             if (!cachedUser) {
                 // Only kick out if explicitly signed out and on profile page AND not parsing access_token hash
-                if (window.location.pathname.includes('profile.html') && !window.location.hash.includes('access_token')) {
+                if (window.location.pathname.toLowerCase().includes('profile') && !window.location.hash.includes('access_token')) {
                     window.location.href = 'index.html';
                 }
-            } else if (window.location.pathname.includes('profile.html')) {
-                hydrateProfilePage(cachedUser);
+            } else if (window.location.pathname.toLowerCase().includes('profile')) {
+                loadUserProfile(cachedUser);
             }
         }
     });
