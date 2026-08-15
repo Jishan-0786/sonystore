@@ -1,10 +1,10 @@
 /**
  * SONY STORE - Customer Authentication & Dynamic Navbar UI Engine
  * Features:
- * 1. Global updateAuthUI() function checking Supabase session & local cache.
- * 2. Dynamically switches navbar link text to "PROFILE" (/profile.html) when authenticated, and "LOGIN" (/login.html) when unauthenticated.
+ * 1. checkUserSession() function checking Supabase session & local cache.
+ * 2. Dynamically switches navbar link id="nav-login-link" text to "PROFILE" (profile.html) when logged in, and "LOGIN" (login.html) when logged out.
  * 3. Prevents FOUC & race conditions by executing on DOMContentLoaded and onAuthStateChange.
- * 4. OAuth Callback Redirect: On index.html/login.html, if session is detected after OAuth callback, automatically redirects to /profile.html.
+ * 4. OAuth Callback Redirect: On index.html/login.html, if session is detected after OAuth callback, automatically redirects to profile.html.
  * 5. Route Protection: Redirects unauthenticated users away from profile.html to index.html.
  * 6. Cleans up #access_token from URL address bar via window.history.replaceState.
  */
@@ -58,8 +58,8 @@ function cleanUrlHash() {
     }
 }
 
-// GLOBAL DYNAMIC NAVBAR SWITCH FUNCTION
-async function updateAuthUI() {
+// CENTRAL USER SESSION & NAVBAR SWITCH FUNCTION
+async function checkUserSession() {
     let client = null;
     if (typeof getSupabaseClient === 'function') {
         client = getSupabaseClient();
@@ -74,42 +74,37 @@ async function updateAuthUI() {
     let session = null;
     if (client && client.auth) {
         try {
-            const res = await client.auth.getSession();
-            session = res.data?.session || null;
+            const { data } = await client.auth.getSession();
+            session = data?.session || null;
         } catch (e) {
-            console.warn('[AUTH] getSession notice in updateAuthUI:', e);
+            console.warn('[AUTH] getSession notice in checkUserSession:', e);
         }
     }
 
     const cachedUser = getCachedUser();
     const currentUser = session?.user || cachedUser;
-    const authBtn = document.getElementById('nav-auth-btn');
+    const navLink = document.getElementById('nav-login-link') || document.getElementById('nav-auth-btn');
 
-    if (authBtn) {
+    if (navLink) {
+        navLink.style.visibility = 'visible';
         if (session || currentUser) {
             // USER IS LOGGED IN
-            authBtn.innerText = 'PROFILE';
-            authBtn.href = 'profile.html';
-            authBtn.style.visibility = 'visible';
-            authBtn.title = `Logged in as ${currentUser?.user_metadata?.full_name || currentUser?.name || currentUser?.email || 'User'}`;
-            authBtn.classList.add('active-auth');
+            navLink.innerText = 'PROFILE';
+            navLink.setAttribute('href', 'profile.html');
         } else {
             // USER IS NOT LOGGED IN
-            authBtn.innerText = 'LOGIN';
-            authBtn.href = 'login.html';
-            authBtn.style.visibility = 'visible';
-            authBtn.removeAttribute('title');
-            authBtn.classList.remove('active-auth');
+            navLink.innerText = 'LOGIN';
+            navLink.setAttribute('href', 'login.html');
         }
     }
 
     const isIndex = isIndexPage();
-    const isLoginPage = isLoginPageCheck();
+    const isLogin = isLoginPageCheck();
     const isProfile = isProfilePage();
     const isAuthPending = window.location.hash.includes('access_token') || window.location.search.includes('code=');
 
     // 1. ROUTE REDIRECT: If on index.html / login.html right after OAuth callback, redirect to profile.html
-    if ((session || currentUser) && (isIndex || isLoginPage) && isAuthPending) {
+    if ((session || currentUser) && (isIndex || isLogin) && isAuthPending) {
         cleanUrlHash();
         window.location.href = 'profile.html';
         return;
@@ -133,10 +128,11 @@ async function updateAuthUI() {
     }
 }
 
-// Global Aliases
-window.updateAuthUI = updateAuthUI;
-const renderAuthState = updateAuthUI;
-const updateNavbarAuthUI = updateAuthUI;
+// Global Aliases for Backwards Compatibility
+window.checkUserSession = checkUserSession;
+window.updateAuthUI = checkUserSession;
+const renderAuthState = checkUserSession;
+const updateNavbarAuthUI = checkUserSession;
 
 // Hydrate profile.html DOM elements
 function hydrateProfilePage(user) {
@@ -206,7 +202,7 @@ async function logoutUser() {
         }
     }
 
-    await updateAuthUI();
+    await checkUserSession();
     window.location.href = 'index.html';
 }
 
@@ -239,10 +235,10 @@ async function signInWithGoogle() {
     }
 }
 
-// System Initializer
+// System Initializer & Event Listeners
 async function initAuthSystem() {
-    // 1. Run updateAuthUI on initialization
-    await updateAuthUI();
+    // 1. Initial check
+    await checkUserSession();
 
     // 2. Attach Google OAuth Click Listeners
     const googleBtns = document.querySelectorAll('#google-login-btn, #googleAuthBtn, .btn-google-auth');
@@ -272,12 +268,13 @@ async function initAuthSystem() {
                 setCachedUser(null);
             }
 
-            await updateAuthUI();
+            await checkUserSession();
         });
     }
 }
 
 // Bind initialization on DOM Content Loaded
 document.addEventListener('DOMContentLoaded', () => {
+    checkUserSession();
     initAuthSystem();
 });
