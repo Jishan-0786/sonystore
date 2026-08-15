@@ -4,12 +4,13 @@
  * 
  * Features:
  * 1. Checks supabase.auth.getSession() & onAuthStateChange.
- * 2. If authenticated: renders PROFILE button/link pointing to profile.html with avatar/name.
- * 3. If unauthenticated: renders LOGIN button pointing to login.html.
+ * 2. If authenticated: renders PROFILE button/link pointing to /profile.html with Google avatar/name.
+ * 3. If unauthenticated: renders LOGIN button pointing to /login.html.
  * 4. Route protection: If unauthenticated on profile.html, redirects to index.html.
  * 5. Auto-saves/upserts profile (id, email, full_name, avatar_url) into Supabase profiles table.
  * 6. Cleans up #access_token from URL hash using window.history.replaceState.
- * 7. Functional logoutUser() calling supabase.auth.signOut() and redirecting to index.html.
+ * 7. Fixed Google OAuth click listener attached to #google-login-btn & .btn-google-auth.
+ * 8. Functional logoutUser() calling supabase.auth.signOut() and redirecting to index.html.
  */
 
 // Helper functions for page route checking
@@ -66,7 +67,7 @@ function cleanUrlHash() {
 // Auto-Save User Profile into Supabase Database `profiles` Table
 async function saveProfileToSupabase(user) {
     if (!user) return;
-    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || window.supabase || null);
     if (!client) return;
 
     const id = user.id;
@@ -140,7 +141,7 @@ async function updateNavbarAuthUI(sessionParam) {
     let session = sessionParam;
 
     if (typeof session === 'undefined') {
-        const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+        const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || window.supabase || null);
         if (client && client.auth) {
             try {
                 const res = await client.auth.getSession();
@@ -223,7 +224,7 @@ async function logoutUser() {
     console.log('[AUTH] Sign Out requested...');
     setCachedUser(null);
 
-    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || window.supabase || null);
     if (client && client.auth) {
         try {
             await client.auth.signOut();
@@ -236,10 +237,10 @@ async function logoutUser() {
     window.location.href = 'index.html';
 }
 
-// Google OAuth Initiator
+// Google OAuth Initiator & Listener Binder
 async function signInWithGoogle() {
     console.log('[AUTH] Starting Google Sign-In...');
-    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || window.supabase || null);
     if (!client || !client.auth) {
         alert('Supabase auth client is not initialized.');
         return;
@@ -266,15 +267,49 @@ async function signInWithGoogle() {
     }
 }
 
+// Attach Event Listeners to Google Login Buttons
+function bindGoogleLoginEvents() {
+    // 1. Explicit listener on google-login-btn
+    document.getElementById('google-login-btn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        console.log('[AUTH] google-login-btn clicked');
+        const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || window.supabase || null);
+        if (client && client.auth) {
+            await client.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + '/profile.html' }
+            });
+        } else {
+            await signInWithGoogle();
+        }
+    });
+
+    // 2. Also bind googleAuthBtn and .btn-google-auth for backwards compatibility
+    const googleBtns = document.querySelectorAll('#googleAuthBtn, .btn-google-auth');
+    googleBtns.forEach(btn => {
+        if (btn.id !== 'google-login-btn' && !btn.dataset.authBound) {
+            btn.dataset.authBound = "true";
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                console.log('[AUTH] Google auth button clicked:', btn.id || btn.className);
+                await signInWithGoogle();
+            });
+        }
+    });
+}
+
 // Fast Session Checker & Auth Controller Initializer
 async function initAuthSystem() {
+    // Attach Google OAuth Click Listeners
+    bindGoogleLoginEvents();
+
     // 0. Instant Cache Check to eliminate navbar rendering delay / flickering
     const cachedUser = getCachedUser();
     if (cachedUser) {
         updateNavbarAuthUI({ user: cachedUser });
     }
 
-    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || null);
+    const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : (window.supabaseClient || window.supabase || null);
 
     if (client && client.auth) {
         try {
