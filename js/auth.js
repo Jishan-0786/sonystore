@@ -40,8 +40,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const userDashboardView = document.getElementById('user-dashboard-view');
   const googleLoginBtnProfile = document.getElementById('google-login-btn-profile');
 
-  // Initial Session Check
-  const { data: { session } } = await supabase.auth.getSession();
+  // Initial Session Check with Timeout Fallback
+  let session = null;
+  try {
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000));
+      const result = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+      ]);
+      session = result.data.session;
+  } catch (e) {
+      console.warn("Supabase auth check failed or timed out. Falling back to logged-out state.", e);
+      session = null;
+  }
 
   function updateUI(currentSession) {
       if (currentSession && currentSession.user) {
