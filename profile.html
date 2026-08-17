@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Profile - Sony Store</title>
+  <title>Profile - Sony Store</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js" defer></script>
 </head>
-<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col items-center justify-center p-4">
-  <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full text-center">
-    <img id="user-avatar" src="https://via.placeholder.com/150" alt="Avatar" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-indigo-500 object-cover" />
+<body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+    <img id="user-avatar" src="https://via.placeholder.com/150" alt="Profile Picture" class="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-indigo-500 object-cover" />
     <h2 id="user-name" class="text-2xl font-bold mb-1">Loading...</h2>
     <p id="user-email" class="text-gray-500 mb-6">Loading...</p>
-    <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-lg transition">Sign Out</button>
+    <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg transition">Sign Out</button>
   </div>
 </body>
 </html>

@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isProfilePage = window.location.pathname.includes('profile.html');
   const authBtn = document.getElementById('nav-auth-btn');
 
-  // Handle URL Hash clean-up
   if (window.location.hash.includes('access_token')) {
     window.history.replaceState(null, '', window.location.pathname);
   }
@@ -34,12 +33,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Auth Nav Click
   if (authBtn) {
     authBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       const { data: { session: activeSession } } = await supabase.auth.getSession();
-      
       if (!activeSession) {
         await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -53,7 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Logout Event
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/index.html';
