@@ -10,87 +10,87 @@ function renderUserProfile(user) {
   if (avatarEl) avatarEl.src = meta.avatar_url || meta.picture || 'https://via.placeholder.com/150';
 }
 
+async function upsertUserProfile(user) {
+  try {
+    const meta = user.user_metadata || {};
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
+      full_name: meta.full_name || meta.name || user.email || 'User',
+      email: user.email || '',
+      avatar_url: meta.avatar_url || meta.picture || '',
+      updated_at: new Date()
+    });
+    if (error) {
+        console.error("Error upserting profile:", error);
+    }
+  } catch (e) {
+    console.error("Exception during profile upsert:", e);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-  const isProfilePage = window.location.pathname.includes('auth/profile.html');
-  const isIndexPage = window.location.pathname === '/' || window.location.pathname.includes('index.html');
-  const authBtn = document.getElementById('nav-auth-btn');
-
-  const loggedInView = document.getElementById('auth-logged-in');
-  const loggedOutView = document.getElementById('auth-logged-out');
-  const googleLoginBtnProfile = document.getElementById('google-login-btn-profile');
-
-  // Handle URL Hash clean-up
+  const isProfilePage = window.location.pathname.endsWith('/profile.html') || window.location.pathname.endsWith('/profile');
+  
+  // Clean hash token
   if (window.location.hash.includes('access_token')) {
     window.history.replaceState(null, '', window.location.pathname);
   }
 
+  const createProfileView = document.getElementById('create-profile-view');
+  const userDashboardView = document.getElementById('user-dashboard-view');
+  const googleLoginBtnProfile = document.getElementById('google-login-btn-profile');
+
+  // Initial Session Check
   const { data: { session } } = await supabase.auth.getSession();
 
-  if (session && session.user) {
-    if (authBtn) authBtn.innerText = 'PROFILE';
-    if (isProfilePage) {
-      renderUserProfile(session.user);
-    }
-    
-    // In-page profile section toggling for index.html
-    if (loggedInView && loggedOutView) {
-      loggedInView.style.display = 'block';
-      loggedOutView.style.display = 'none';
-      renderUserProfile(session.user);
-    }
-  } else {
-    if (authBtn) authBtn.innerText = 'PROFILE';
-    if (isProfilePage) {
-      window.location.href = '/index.html';
-      return;
-    }
-
-    // In-page profile section toggling for index.html
-    if (loggedInView && loggedOutView) {
-      loggedInView.style.display = 'none';
-      loggedOutView.style.display = 'block';
-    }
-  }
-
-  // Auth Nav Click
-  if (authBtn) {
-    authBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const { data: { session: activeSession } } = await supabase.auth.getSession();
-      if (!activeSession) {
-        await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: 'https://sonystore.pages.dev/index.html' }
-        });
+  function updateUI(currentSession) {
+      if (currentSession && currentSession.user) {
+          if (isProfilePage && createProfileView && userDashboardView) {
+              createProfileView.style.display = 'none';
+              userDashboardView.style.display = 'block';
+              renderUserProfile(currentSession.user);
+          }
       } else {
-        // If they click PROFILE on nav and are already logged in, scroll to profile section if on index, else go to index
-        if (isIndexPage) {
-            const profileSection = document.getElementById('profile-section');
-            if (profileSection) profileSection.scrollIntoView({ behavior: 'smooth' });
-        } else {
-            window.location.href = '/index.html#profile-section';
-        }
+          if (isProfilePage && createProfileView && userDashboardView) {
+              createProfileView.style.display = 'block';
+              userDashboardView.style.display = 'none';
+          }
       }
-    });
   }
 
-  // Google Login Button inside Profile Section
+  // Initial update
+  updateUI(session);
+
+  // If user just logged in, upsert profile
+  if (session && session.user) {
+      upsertUserProfile(session.user);
+  }
+
+  // Listen for auth state changes
+  supabase.auth.onAuthStateChange((event, currentSession) => {
+      updateUI(currentSession);
+      if (event === 'SIGNED_IN' && currentSession && currentSession.user) {
+          upsertUserProfile(currentSession.user);
+      }
+  });
+
+  // Google OAuth Login
   if (googleLoginBtnProfile) {
       googleLoginBtnProfile.addEventListener('click', async (e) => {
           e.preventDefault();
           await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: 'https://sonystore.pages.dev/index.html' }
+            options: { redirectTo: window.location.origin + '/profile.html' }
           });
       });
   }
 
-  // Logout Event (handles both in-page and auth/profile.html buttons)
+  // Handle Logout
   const logoutBtns = document.querySelectorAll('#logout-btn, .btn-logout');
   logoutBtns.forEach(btn => {
       btn.addEventListener('click', async () => {
         await supabase.auth.signOut();
-        window.location.href = '/index.html';
+        // UI is cleared and updated by onAuthStateChange automatically!
       });
   });
 });

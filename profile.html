@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | SONY STORE</title>
+    <meta name="description" content="Manage your SONY STORE luxury timepiece account, orders, wishlist, and profile settings.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <!-- SITE HEADER & NAVIGATION -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                    <a href="profile.html" class="nav-link active" id="nav-auth-btn">PROFILE</a>
+                </nav>
+
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        ♥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        🛒
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PROFILE SECTION -->
+    <section class="section" style="padding-top: 120px;">
+        <div class="container">
+            
+            <!-- CREATE PROFILE VIEW (LOGGED OUT) -->
+            <div id="create-profile-view" class="animated-card story-card reveal" style="text-align: center; max-width: 600px; margin: 0 auto; display: none;">
+                <div class="section-header" style="margin-bottom: 30px;">
+                    <span class="section-subtitle">VIP SHOWROOM ACCESS</span>
+                    <h2 class="section-title">CREATE YOUR <span class="gold-text">PROFILE</span></h2>
+                </div>
+                <div class="founder-line-divider"></div>
+                <div style="font-size: 4rem; margin-bottom: 20px;">👤</div>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">
+                    Please log in to curate your wishlist, track your timepieces, and access concierge services.
+                </p>
+                <button id="google-login-btn-profile" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align: middle;">
+                        <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+                        <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+                        <path fill="#FBBC05" d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.1-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
+                        <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                </button>
+            </div>
+
+            <!-- USER DASHBOARD VIEW (LOGGED IN) -->
+            <div id="user-dashboard-view" style="display: none;">
+                <div class="animated-card story-card reveal" style="text-align: center; max-width: 800px; margin: 0 auto; margin-bottom: 40px;">
+                    <img id="user-avatar" src="https://via.placeholder.com/150" alt="Avatar" style="width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 20px auto; border: 3px solid var(--gold-primary); object-fit: cover;" />
+                    <h2 id="user-name" style="font-size: 2rem; font-family: var(--font-heading); color: var(--gold-light); margin-bottom: 8px;">Loading...</h2>
+                    <p id="user-email" style="color: var(--text-muted); margin-bottom: 30px;">Loading...</p>
+                    <button id="logout-btn" class="btn-secondary" style="padding: 10px 30px;">Sign Out</button>
+                </div>
+
+                <!-- Dashboard Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; max-width: 1000px; margin: 0 auto;">
+                    <!-- Orders -->
+                    <a href="orders.html" class="glass-panel" style="padding: 30px; display: block; text-align: center; border-color: var(--border-gold); transition: transform 0.2s;">
+                        <div style="font-size: 2.5rem; margin-bottom: 16px;">📦</div>
+                        <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: var(--gold-light); margin-bottom: 8px;">My Orders</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Track delivery and purchase history</p>
+                    </a>
+                    <!-- Wishlist -->
+                    <a href="wishlist.html" class="glass-panel" style="padding: 30px; display: block; text-align: center; border-color: var(--border-gold); transition: transform 0.2s;">
+                        <div style="font-size: 2.5rem; margin-bottom: 16px;">♥</div>
+                        <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: var(--gold-light); margin-bottom: 8px;">Wishlist</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Curated luxury timepieces</p>
+                    </a>
+                    <!-- Settings -->
+                    <a href="#" class="glass-panel" style="padding: 30px; display: block; text-align: center; border-color: var(--border-gold); transition: transform 0.2s;">
+                        <div style="font-size: 2.5rem; margin-bottom: 16px;">⚙</div>
+                        <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: var(--gold-light); margin-bottom: 8px;">Account Settings</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Manage preferences & addresses</p>
+                    </a>
+                </div>
+            </div>
+            
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JS SCRIPTS -->
+    <script src="products.js" defer></script>
+    <script src="supabase.js" defer></script>
+    <script src="app.js" defer></script>
+    <script src="cart.js" defer></script>
+    <script src="animations.js" defer></script>
+</body>
+</html>
