@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="responsive.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js" defer></script>
     <style>
         .profile-dashboard-card {
             max-width: 960px;
@@ -154,7 +155,7 @@
                     <a href="about.html" class="nav-link">About</a>
                     <a href="contact.html" class="nav-link">Contact</a>
                     <!-- Dynamic Auth Link -->
-                    <a href="javascript:void(0);" class="nav-link nav-link-auth active" id="nav-auth-btn">PROFILE</a>
+                    <a href="javascript:void(0);" class="nav-link nav-link-auth active" id="nav-auth-btn" style="visibility: hidden;">PROFILE</a>
                 </nav>
 
                 <div class="header-actions">
@@ -301,14 +302,11 @@
         </div>
     </footer>
 
-    <!-- JS SCRIPTS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="products.js"></script>
-    <script src="supabase.js"></script>
-    <script src="script.js"></script>
-    <script src="auth.js"></script>
-    <script src="app.js"></script>
-    <script src="cart.js"></script>
-    <script src="animations.js"></script>
+    <!-- OTHER SCRIPTS -->
+    <script src="products.js" defer></script>
+    <script src="supabase.js" defer></script>
+    <script src="app.js" defer></script>
+    <script src="cart.js" defer></script>
+    <script src="animations.js" defer></script>
 </body>
 </html>
