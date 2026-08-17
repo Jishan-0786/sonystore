@@ -13,7 +13,7 @@ function renderUserProfile(user) {
 async function upsertUserProfile(user) {
   try {
     const meta = user.user_metadata || {};
-    const { error } = await supabase.from('profiles').upsert({
+    const { error } = await supabaseClient.from('profiles').upsert({
       id: user.id,
       full_name: meta.full_name || meta.name || user.email || 'User',
       email: user.email || '',
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
       const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000));
       const result = await Promise.race([
-          supabase.auth.getSession(),
+          supabaseClient.auth.getSession(),
           timeoutPromise
       ]);
       session = result.data.session;
@@ -78,21 +78,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Listen for auth state changes
-  supabase.auth.onAuthStateChange((event, currentSession) => {
-      updateUI(currentSession);
-      if (event === 'SIGNED_IN' && currentSession && currentSession.user) {
-          upsertUserProfile(currentSession.user);
-      }
-  });
+  if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
+      supabaseClient.auth.onAuthStateChange((event, currentSession) => {
+          updateUI(currentSession);
+          if (event === 'SIGNED_IN' && currentSession && currentSession.user) {
+              upsertUserProfile(currentSession.user);
+          }
+      });
+  }
 
   // Google OAuth Login
   if (googleLoginBtnProfile) {
       googleLoginBtnProfile.addEventListener('click', async (e) => {
           e.preventDefault();
-          await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: window.location.origin + '/profile.html' }
-          });
+          console.log("GOOGLE SIGN IN CLICKED");
+          try {
+              const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + '/profile.html' }
+              });
+              console.log("[GOOGLE AUTH RESULT]", { data, error });
+              if (error) {
+                  alert("Login error: " + error.message);
+              }
+          } catch (err) {
+              console.error(err);
+              alert("Login exception: " + err.message);
+          }
       });
   }
 
@@ -100,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoutBtns = document.querySelectorAll('#logout-btn, .btn-logout');
   logoutBtns.forEach(btn => {
       btn.addEventListener('click', async () => {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
         // UI is cleared and updated by onAuthStateChange automatically!
       });
   });
