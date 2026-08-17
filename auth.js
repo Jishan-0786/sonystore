@@ -14,12 +14,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isProfilePage = window.location.pathname.includes('profile.html');
   const authBtn = document.getElementById('nav-auth-btn');
 
-  // Remove hash tokens if present
+  // Handle URL Hash clean-up
   if (window.location.hash.includes('access_token')) {
     window.history.replaceState(null, '', window.location.pathname);
   }
 
-  // Fetch user session
   const { data: { session } } = await supabase.auth.getSession();
 
   if (session && session.user) {
@@ -35,12 +34,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Auth click listener
+  // Auth Nav Click
   if (authBtn) {
     authBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (!currentSession) {
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      
+      if (!activeSession) {
         await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo: 'https://sonystore.pages.dev/profile.html' }
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Sign Out
+  // Logout Event
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/index.html';
