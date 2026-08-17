@@ -1,4 +1,4 @@
-function renderUserData(user) {
+function renderUserProfile(user) {
   if (!user) return;
   const meta = user.user_metadata || {};
   const nameEl = document.getElementById('user-name');
@@ -14,53 +14,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isProfilePage = window.location.pathname.includes('profile.html');
   const authBtn = document.getElementById('nav-auth-btn');
 
-  // Smooth fade-in guard to prevent 1-second flicker
-  if (isProfilePage) {
-    document.body.style.transition = 'opacity 0.2s ease-in-out';
-    document.body.style.opacity = '0';
-  }
-
-  // Clean access_token hash from URL without reloading page
+  // Remove hash tokens if present
   if (window.location.hash.includes('access_token')) {
     window.history.replaceState(null, '', window.location.pathname);
   }
 
-  // Retrieve authenticated session
-  const { data: { session } } = await window.supabase.auth.getSession();
+  // Fetch user session
+  const { data: { session } } = await supabase.auth.getSession();
 
   if (session && session.user) {
-    // --- USER IS LOGGED IN ---
     if (authBtn) authBtn.innerText = 'PROFILE';
-
     if (isProfilePage) {
-      renderUserData(session.user);
-      document.body.style.opacity = '1';
+      renderUserProfile(session.user);
     }
   } else {
-    // --- USER IS NOT LOGGED IN ---
-    if (authBtn) authBtn.innerText = 'LOGIN';
-
+    if (authBtn) authBtn.innerText = 'PROFILE';
     if (isProfilePage) {
-      // Redirect ONLY if genuinely unauthenticated
       window.location.href = '/index.html';
       return;
     }
   }
 
-  // Handle Auth Button Clicks
+  // Auth click listener
   if (authBtn) {
     authBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      const { data: { session: currentSession } } = await window.supabase.auth.getSession();
-
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!currentSession) {
-        // Not logged in -> OAuth Trigger
-        await window.supabase.auth.signInWithOAuth({
+        await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo: 'https://sonystore.pages.dev/profile.html' }
         });
       } else {
-        // Already logged in -> Direct to Profile
         if (!isProfilePage) {
           window.location.href = '/profile.html';
         }
@@ -68,9 +53,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Handle Sign Out Button
+  // Sign Out
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
-    await window.supabase.auth.signOut();
+    await supabase.auth.signOut();
     window.location.href = '/index.html';
   });
 });
