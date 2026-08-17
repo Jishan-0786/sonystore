@@ -11,7 +11,7 @@ function renderUserProfile(user) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const isProfilePage = window.location.pathname.includes('profile.html');
+  const isProfilePage = window.location.pathname.includes('auth/profile.html');
   const authBtn = document.getElementById('nav-auth-btn');
 
   if (window.location.hash.includes('access_token')) {
@@ -40,11 +40,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!activeSession) {
         await supabase.auth.signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: 'https://sonystore.pages.dev/profile.html' }
+          options: { redirectTo: 'https://sonystore.pages.dev/auth/profile.html' }
         });
       } else {
         if (!isProfilePage) {
-          window.location.href = '/profile.html';
+          window.location.href = '/auth/profile.html';
         }
       }
     });
