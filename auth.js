@@ -32,8 +32,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isProfilePage = window.location.pathname.endsWith('/profile.html') || window.location.pathname.endsWith('/profile');
   
   // Clean hash token
+  let justCompletedOAuth = false;
   if (window.location.hash.includes('access_token')) {
     window.history.replaceState(null, '', window.location.pathname);
+    justCompletedOAuth = true;
   }
 
   const createProfileView = document.getElementById('create-profile-view');
@@ -52,6 +54,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
       console.warn("Supabase auth check failed or timed out. Falling back to logged-out state.", e);
       session = null;
+  }
+
+  console.log('[LOGIN] Session:', !!session);
+  console.log('[LOGIN] User:', session?.user?.email);
+
+  // Redirect authenticated users away from Login page or immediately after OAuth callback
+  const isLoginPage = window.location.pathname.includes('/login');
+  
+  if (session && session.user) {
+      if (isLoginPage || (justCompletedOAuth && !isProfilePage)) {
+          window.location.href = '/profile';
+          return;
+      }
   }
 
   function updateUI(currentSession) {
@@ -88,14 +103,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Google OAuth Login
-  if (googleLoginBtnProfile) {
-      googleLoginBtnProfile.addEventListener('click', async (e) => {
+  const googleLoginBtn = document.getElementById('google-login-btn') || document.getElementById('google-login-btn-profile');
+  if (googleLoginBtn) {
+      googleLoginBtn.addEventListener('click', async (e) => {
           e.preventDefault();
           console.log("GOOGLE SIGN IN CLICKED");
           try {
               const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
-                options: { redirectTo: window.location.origin + '/profile.html' }
+                options: { redirectTo: window.location.origin + '/profile' }
               });
               console.log("[GOOGLE AUTH RESULT]", { data, error });
               if (error) {
