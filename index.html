@@ -166,6 +166,39 @@
         </div>
     </section>
 
+    <!-- IN-PAGE PROFILE SECTION -->
+    <section class="section" id="profile-section">
+        <div class="container">
+            <div class="glass-panel" style="text-align: center; max-width: 600px; margin: 0 auto; padding: 40px; background: rgba(18,20,30,0.85); border: 1px solid var(--border-gold);">
+                <div class="section-header" style="margin-bottom: 30px;">
+                    <span class="section-subtitle">YOUR ACCOUNT</span>
+                    <h2 class="section-title">CLIENT <span class="gold-text">PROFILE</span></h2>
+                </div>
+                
+                <!-- Logged In View (Hidden by default) -->
+                <div id="auth-logged-in" style="display: none;">
+                    <img id="user-avatar" src="https://via.placeholder.com/150" alt="Avatar" style="width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 16px auto; border: 2px solid var(--gold-primary); object-fit: cover;" />
+                    <h2 id="user-name" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 4px; color: var(--gold-light);">Loading...</h2>
+                    <p id="user-email" style="color: var(--text-muted); margin-bottom: 24px;">Loading...</p>
+                    <button id="logout-btn" class="btn-secondary">Sign Out</button>
+                </div>
+
+                <!-- Logged Out View (Shown by default) -->
+                <div id="auth-logged-out">
+                    <p style="color: var(--text-muted); margin-bottom: 24px;">Access your VIP showroom membership, track orders, and curate your wishlist.</p>
+                    <button id="google-login-btn-profile" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; justify-content: center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align: middle;">
+                            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+                            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+                            <path fill="#FBBC05" d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.1-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
+                            <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+                        </svg>
+                        <span>Sign In with Google</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
     <!-- VIP CONCIERGE NEWSLETTER -->
     <section class="section" style="padding: 60px 0;">
         <div class="container">
