@@ -54,22 +54,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   let authInitialized = false;
 
   supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
-      // Supabase guarantees INITIAL_SESSION is fired when initialization is done
+      console.log("[AUTH EVENT]", event);
+      
+      // We will rely on currentSession or a freshly fetched one.
+      let sessionToUse = currentSession;
+      
       if (event === 'INITIAL_SESSION') {
           authInitialized = true;
           console.log('[PROFILE] Auth initialization complete');
           
-          // Call getSession() as requested to get the fully restored session
+          // Call getSession() to get the most up-to-date session
           const { data: { session } } = await supabaseClient.auth.getSession();
-          
-          console.log("[PROFILE] page loaded");
-          console.log("[PROFILE] session:", session);
-          console.log("[PROFILE] user:", session?.user);
-          console.log("[PROFILE] profile container:", userDashboardView);
+          if (session) {
+              sessionToUse = session;
+          }
+      }
+      
+      console.log("[AUTH SESSION]", !!sessionToUse);
 
-          if (session && session.user) {
-              updateUI(session);
-              upsertUserProfile(session.user);
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          if (sessionToUse && sessionToUse.user) {
+              console.log("[PROFILE] SHOW");
+              updateUI(sessionToUse);
+              upsertUserProfile(sessionToUse.user);
               
               if (window.location.pathname.includes('login')) {
                   window.location.href = '/profile';
@@ -79,23 +86,20 @@ document.addEventListener('DOMContentLoaded', async () => {
               if (window.location.hash.includes('access_token')) {
                   window.history.replaceState(null, '', window.location.pathname + window.location.search);
               }
-          } else {
-              if (isProfilePage) {
-                  console.log('[PROFILE AUTH] redirecting to login');
+          } else if (event === 'INITIAL_SESSION') {
+              // If session is null during INITIAL_SESSION, we only redirect if there's NO access_token in the URL.
+              // If there is an access_token, we must wait for the SIGNED_IN event.
+              if (isProfilePage && !window.location.hash.includes('access_token')) {
+                  console.log("[PROFILE] HIDE/REDIRECT");
+                  console.log('[PROFILE AUTH] redirecting to login (no session & no oauth hash)');
                   window.location.href = '/login';
-              }
-          }
-      } else if (event === 'SIGNED_IN') {
-          if (currentSession && currentSession.user) {
-              updateUI(currentSession);
-              upsertUserProfile(currentSession.user);
-              
-              if (window.location.pathname.includes('login')) {
-                  window.location.href = '/profile';
+              } else if (isProfilePage && window.location.hash.includes('access_token')) {
+                  console.log("[PROFILE] Waiting for OAuth SIGNED_IN event...");
               }
           }
       } else if (event === 'SIGNED_OUT') {
           if (isProfilePage) {
+              console.log("[PROFILE] HIDE/REDIRECT");
               console.log('[PROFILE AUTH] redirecting to login due to SIGNED_OUT');
               window.location.href = '/login';
           }
