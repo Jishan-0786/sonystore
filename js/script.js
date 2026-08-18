@@ -1,4 +1,4 @@
-function renderUserProfile(user) {
+﻿function renderUserProfile(user) {
   if (!user) return;
   const meta = user.user_metadata || {};
   const nameEl = document.getElementById('user-name');
@@ -107,6 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           updateUI(currentSession);
           if (event === 'SIGNED_IN' && currentSession && currentSession.user) {
               upsertUserProfile(currentSession.user);
+              if (window.location.pathname.includes('/login')) {
+                  window.location.href = '/profile';
+              }
           }
       });
   }

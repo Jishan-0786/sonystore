@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -223,23 +223,10 @@
 
                 const res = await loginWithSupabaseEmail(email, password);
                 if (res.success) {
-                    showToast('Signed in successfully!', 'âœ“');
-                    setTimeout(() => {
-                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : '/profile';
-                    }, 600);
+                    showToast('Signed in successfully!', '✓');
+                    // The onAuthStateChange listener in script.js will handle the redirect.
                 } else {
-                    // Fallback local signin for demo
-                    setLoggedInUser({
-                        email: email,
-                        name: email.split('@')[0],
-                        phone: '+977 9800000000'
-                    });
-                    showToast('Signed in (VIP Session)', 'âœ“');
-                    setTimeout(() => {
-                        const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : '/profile';
-                    }, 600);
+                    showToast('Login failed: ' + (res.error ? res.error.message : 'Unknown error'), '✖');
                 }
             });
 
@@ -247,5 +234,6 @@
     </script>
 </body>
 </html>
+
 
 
