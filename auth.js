@@ -29,23 +29,16 @@ async function upsertUserProfile(user) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const isProfilePage = window.location.pathname.endsWith('/profile.html') || window.location.pathname.endsWith('/profile');
+  const isProfilePage = window.location.pathname.includes('profile');
   const createProfileView = document.getElementById('create-profile-view');
   const userDashboardView = document.getElementById('user-dashboard-view');
-  const googleLoginBtnProfile = document.getElementById('google-login-btn-profile');
 
-  console.log('[PROFILE AUTH] initializing');
+  console.log('[PROFILE] Supabase initializing');
 
   if (typeof supabaseClient === 'undefined' || !supabaseClient.auth) {
       console.warn("Supabase client not found.");
       return;
   }
-
-  // Use the existing Supabase client to get the completely resolved session
-  const { data: { session }, error } = await supabaseClient.auth.getSession();
-  
-  console.log('[PROFILE AUTH] session:', !!session);
-  console.log('[PROFILE AUTH] user:', session?.user?.email);
 
   function updateUI(currentSession) {
       if (currentSession && currentSession.user) {
@@ -57,37 +50,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
   }
 
-  // Handle the initial state NOW
-  if (session && session.user) {
-      updateUI(session);
-      upsertUserProfile(session.user);
-      
-      if (window.location.pathname.includes('/login')) {
-          window.location.href = '/profile';
-      }
-  } else {
-      if (isProfilePage) {
-          console.log('[PROFILE AUTH] redirecting to login');
-          window.location.href = '/login';
-          return;
-      }
-  }
+  let authInitialized = false;
 
-  // Setup onAuthStateChange for future dynamic changes
-  supabaseClient.auth.onAuthStateChange((event, currentSession) => {
-      // Ignore INITIAL_SESSION because we already awaited getSession()
-      if (event === 'INITIAL_SESSION') return;
-      
-      if (event === 'SIGNED_IN' && currentSession && currentSession.user) {
-          updateUI(currentSession);
-          upsertUserProfile(currentSession.user);
+  supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
+      // Supabase guarantees INITIAL_SESSION is fired when initialization is done
+      if (event === 'INITIAL_SESSION') {
+          authInitialized = true;
+          console.log('[PROFILE] Auth initialization complete');
           
-          if (window.location.pathname.includes('/login')) {
-              window.location.href = '/profile';
+          // Call getSession() as requested to get the fully restored session
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          
+          console.log('[PROFILE] Session:', !!session);
+          console.log('[PROFILE] User:', session?.user?.email);
+
+          if (session && session.user) {
+              updateUI(session);
+              upsertUserProfile(session.user);
+              
+              if (window.location.pathname.includes('login')) {
+                  window.location.href = '/profile';
+              }
+              
+              // Clean URL hash without reloading the page if it contains access_token
+              if (window.location.hash.includes('access_token')) {
+                  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+              }
+          } else {
+              if (isProfilePage) {
+                  console.log('[PROFILE AUTH] redirecting to login');
+                  window.location.href = '/login';
+              }
+          }
+      } else if (event === 'SIGNED_IN') {
+          if (currentSession && currentSession.user) {
+              updateUI(currentSession);
+              upsertUserProfile(currentSession.user);
+              
+              if (window.location.pathname.includes('login')) {
+                  window.location.href = '/profile';
+              }
           }
       } else if (event === 'SIGNED_OUT') {
           if (isProfilePage) {
-              console.log('[PROFILE AUTH] redirecting to login');
+              console.log('[PROFILE AUTH] redirecting to login due to SIGNED_OUT');
               window.location.href = '/login';
           }
       }
@@ -122,6 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
   });
 });
+
 window.loginWithSupabaseEmail = async function(email, password) {
     if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
         try {
@@ -136,4 +143,3 @@ window.loginWithSupabaseEmail = async function(email, password) {
     }
     return { success: false, error: new Error('Supabase client not initialized.') };
 }
-
