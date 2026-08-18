@@ -73,6 +73,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
   }
 
+  // Protect Profile page from unauthenticated users
+  if (isProfilePage && (!session || !session.user)) {
+      window.location.href = '/login';
+      return;
+  }
+
   function updateUI(currentSession) {
       if (currentSession && currentSession.user) {
           if (isProfilePage && createProfileView && userDashboardView) {
@@ -81,9 +87,8 @@ document.addEventListener('DOMContentLoaded', async () => {
               renderUserProfile(currentSession.user);
           }
       } else {
-          if (isProfilePage && createProfileView && userDashboardView) {
-              createProfileView.style.display = 'block';
-              userDashboardView.style.display = 'none';
+          if (isProfilePage) {
+              window.location.href = '/login';
           }
       }
   }
