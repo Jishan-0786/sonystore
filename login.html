@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Login | SONY STORE</title>
+    <meta name="description" content="Sign in to your SONY STORE account using your email or phone number for white-glove order placement and tracking.">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../responsive.css">
+    <style>
+        .auth-card {
+            max-width: 480px;
+            margin: 60px auto;
+            padding: 40px;
+            border-color: var(--border-gold);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            text-align: center;
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        .demo-notice-badge {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SITE HEADER -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="brand-logo">
+                    <div class="logo-badge">S</div>
+                    <div>
+                        <div>SONY STORE</div>
+                        <span class="brand-sub">LUXURY TIMEPIECES</span>
+                    </div>
+                </a>
+
+                <nav class="main-nav" id="mainNav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="shop.html" class="nav-link">Watches</a>
+                    <a href="shop.html?category=Luxury" class="nav-link">Collections</a>
+                    <a href="wishlist.html" class="nav-link">Wishlist</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                    <a href="profile.html" class="nav-link" id="nav-auth-btn">LOGIN</a>
+                </nav>
+
+                <div class="header-actions">
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">Ã°Å¸â€Â</a>
+                    <a href="wishlist.html" class="icon-btn" title="Wishlist">
+                        Ã¢â„¢Â¥
+                        <span class="badge-count wishlist-badge" style="display: none;">0</span>
+                    </a>
+                    <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
+                        Ã°Å¸â€ºâ€™
+                        <span class="badge-count cart-badge" style="display: none;">0</span>
+                    </button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">Ã¢ËœÂ°</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- LOGIN MAIN SECTION -->
+    <section class="section" style="padding-top: 100px; padding-bottom: 80px;">
+        <div class="container">
+            
+            <div class="glass-panel auth-card reveal">
+                
+                <span class="section-subtitle" style="display: block; margin-bottom: 8px;">VIP CUSTOMER ACCESS</span>
+                <h1 style="font-family: var(--font-heading); font-size: 1.8rem; color: var(--gold-light); margin-bottom: 12px;" id="authStepTitle">LOGIN TO SONY STORE</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;" id="authStepSubtitle">
+                    Sign in to access your SONY STORE account, orders, and saved timepieces.
+                </p>
+
+                <!-- PROMINENT GOOGLE AUTHENTICATION BUTTON -->
+                <div style="margin-bottom: 20px;">
+                    <button type="button" id="google-login-btn" class="btn-google-auth">
+                        <svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 10px; vertical-align: middle;">
+                            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+                            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+                            <path fill="#FBBC05" d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.1-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
+                            <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+                        </svg>
+                        <span id="googleAuthBtnText">Continue with Google</span>
+                    </button>
+                    <div id="googleAuthErrorBox" style="display: none; margin-top: 10px; padding: 12px; background: rgba(239,68,68,0.15); border: 1px solid #ef4444; color: #ef4444; border-radius: var(--radius-sm); font-size: 0.85rem; text-align: left;"></div>
+                </div>
+
+                <div class="auth-divider">
+                    <span>OR SIGN IN WITH</span>
+                </div>
+
+                <!-- FORM 1: SUPABASE EMAIL / PASSWORD LOGIN -->
+                <form id="emailLoginForm">
+                    <div style="text-align: left; margin-bottom: 16px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Email Address</label>
+                        <input type="email" id="supabaseEmail" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="client@example.com" required>
+                    </div>
+                    <div style="text-align: left; margin-bottom: 24px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Password</label>
+                        <input type="password" id="supabasePassword" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 12px;">SIGN IN WITH EMAIL Ã¢â€ â€™</button>
+                </form>
+
+                </div></div></section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo" style="margin-bottom: 16px;">
+                        <div class="logo-badge">S</div>
+                        <div>
+                            <div>SONY STORE</div>
+                            <span class="brand-sub">LUXURY TIMEPIECES</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 320px;">
+                        SONY STORE is a modern watch brand focused on timeless design, quality craftsmanship, and an exceptional customer experience.
+                    </p>
+                </div>
+                <div>
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Watch Collection</a></li>
+                        <li><a href="wishlist.html">My Wishlist</a></li>
+                        <li><a href="about.html">About Founder</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="shop.html?category=Luxury">Luxury Collection</a></li>
+                        <li><a href="shop.html?category=Sport">Sport & Racing</a></li>
+                        <li><a href="shop.html?category=Automatic">Automatic Watches</a></li>
+                        <li><a href="shop.html?category=Minimal">Minimalist Series</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Customer Care</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                        Dedicated customer assistance and concierge service for SONY STORE clients.
+                    </p>
+                    <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
+                        Ã¢Å“â€°Ã¯Â¸Â support@sonystore.com
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 SONY STORE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
+        <div class="cart-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">Shopping Bag</div>
+                <button class="drawer-close" id="closeCartDrawer">Ã¢Å“â€¢</button>
+            </div>
+            <div class="drawer-body" id="cartDrawerBody"></div>
+            <div class="drawer-footer">
+                <div class="drawer-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="drawerSubtotal" style="font-weight: 700;">$0</span>
+                </div>
+                <div class="drawer-summary-row" style="margin-bottom: 20px;">
+                    <span>Total (Insured Delivery):</span>
+                    <span class="drawer-total" id="drawerTotal">$0</span>
+                </div>
+                <a href="cart.html" onclick="closeCartDrawer()" class="btn-primary" style="display: block; text-align: center; width: 100%;">View Full Cart & Checkout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../products.js"></script>
+    <script src="../supabase.js"></script>
+    <script src="../auth.js"></script>
+    <script src="../app.js"></script>
+    <script src="../cart.js"></script>
+    <script src="../animations.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const emailLoginForm = document.getElementById('emailLoginForm');
+            
+
+            // Email Login Submit (Supabase Auth)
+            emailLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('supabaseEmail').value.trim();
+                const password = document.getElementById('supabasePassword').value.trim();
+
+                const res = await loginWithSupabaseEmail(email, password);
+                if (res.success) {
+                    showToast('Signed in successfully!', '✓');
+                    // The onAuthStateChange listener in script.js will handle the redirect.
+                } else {
+                    showToast('Login failed: ' + (res.error ? res.error.message : 'Unknown error'), '✖');
+                }
+            });
+
+            });
+    </script>
+</body>
+</html>
+
+
+
