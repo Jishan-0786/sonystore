@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -120,20 +120,20 @@
                     <a href="wishlist.html" class="nav-link">Wishlist</a>
                     <a href="about.html" class="nav-link">About</a>
                     <a href="contact.html" class="nav-link">Contact</a>
-                    <a href="profile.html" class="nav-link" id="nav-auth-btn">PROFILE</a>
+                    <a href="profile.html" class="nav-link" id="nav-auth-btn">LOGIN</a>
                 </nav>
 
                 <div class="header-actions">
-                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">ðŸ”</a>
                     <a href="wishlist.html" class="icon-btn" title="Wishlist">
-                        ♥
+                        â™¥
                         <span class="badge-count wishlist-badge" style="display: none;">0</span>
                     </a>
                     <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
-                        🛒
+                        ðŸ›’
                         <span class="badge-count cart-badge" style="display: none;">0</span>
                     </button>
-                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">â˜°</button>
                 </div>
             </div>
         </div>
@@ -183,9 +183,9 @@
                     </div>
                     <div style="text-align: left; margin-bottom: 24px;">
                         <label style="font-size: 0.85rem; font-weight: 700; color: var(--gold-light);">Password</label>
-                        <input type="password" id="supabasePassword" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="••••••••" required>
+                        <input type="password" id="supabasePassword" class="form-input" style="width: 100%; padding: 12px; margin-top: 6px;" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required>
                     </div>
-                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 12px;">SIGN IN WITH EMAIL →</button>
+                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 12px;">SIGN IN WITH EMAIL â†’</button>
                 </form>
 
                 <!-- FORM 2: STEP 1 - PHONE NUMBER FORM -->
@@ -197,14 +197,14 @@
                             <input type="tel" id="userPhoneInput" class="phone-input" placeholder="98XXXXXXXX" maxlength="10">
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px;">CONTINUE →</button>
+                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px;">CONTINUE â†’</button>
                 </form>
 
                 <!-- FORM 3: STEP 2 - OTP VERIFICATION FORM -->
                 <form id="otpForm" style="display: none;">
                     
                     <div class="demo-notice-badge">
-                        💡 <strong>DEMO MODE</strong>: Use verification code <strong>123456</strong>
+                        ðŸ’¡ <strong>DEMO MODE</strong>: Use verification code <strong>123456</strong>
                     </div>
 
                     <div style="margin-bottom: 16px;">
@@ -219,7 +219,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 16px;">VERIFY & CONTINUE →</button>
+                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 16px;">VERIFY & CONTINUE â†’</button>
                     
                     <div>
                         <button type="button" id="changePhoneBtn" style="background: none; border: none; color: var(--gold-primary); cursor: pointer; text-decoration: underline; font-size: 0.85rem;">
@@ -274,7 +274,7 @@
                         Dedicated customer assistance and concierge service for SONY STORE clients.
                     </p>
                     <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
-                        ✉️ support@sonystore.com
+                        âœ‰ï¸ support@sonystore.com
                     </p>
                 </div>
             </div>
@@ -289,7 +289,7 @@
         <div class="cart-drawer">
             <div class="drawer-header">
                 <div class="drawer-title">Shopping Bag</div>
-                <button class="drawer-close" id="closeCartDrawer">✕</button>
+                <button class="drawer-close" id="closeCartDrawer">âœ•</button>
             </div>
             <div class="drawer-body" id="cartDrawerBody"></div>
             <div class="drawer-footer">
@@ -352,7 +352,7 @@
 
                 const res = await loginWithSupabaseEmail(email, password);
                 if (res.success) {
-                    showToast('Signed in successfully!', '✓');
+                    showToast('Signed in successfully!', 'âœ“');
                     setTimeout(() => {
                         const redirectParam = new URLSearchParams(window.location.search).get('redirect');
                         window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
@@ -364,7 +364,7 @@
                         name: email.split('@')[0],
                         phone: '+977 9800000000'
                     });
-                    showToast('Signed in (VIP Session)', '✓');
+                    showToast('Signed in (VIP Session)', 'âœ“');
                     setTimeout(() => {
                         const redirectParam = new URLSearchParams(window.location.search).get('redirect');
                         window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
@@ -377,14 +377,14 @@
                 e.preventDefault();
                 const rawVal = phoneInput.value.trim();
                 if (rawVal.length < 8) {
-                    showToast('Please enter a valid phone number', '⚠');
+                    showToast('Please enter a valid phone number', 'âš ');
                     return;
                 }
                 enteredPhone = '+977 ' + rawVal;
 
                 phoneForm.style.display = 'none';
                 otpForm.style.display = 'block';
-                showToast('Demo OTP Code is 123456', '🔑');
+                showToast('Demo OTP Code is 123456', 'ðŸ”‘');
                 otpDigits[0].focus();
             });
 
@@ -408,7 +408,7 @@
                 const code = Array.from(otpDigits).map(d => d.value).join('');
 
                 if (code === '123456') {
-                    showToast('Phone Number Verified!', '✓');
+                    showToast('Phone Number Verified!', 'âœ“');
                     setLoggedInUser({
                         phone: enteredPhone,
                         name: 'Valued Customer'
@@ -419,7 +419,7 @@
                         window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
                     }, 600);
                 } else {
-                    showToast('Invalid OTP Code. Demo OTP is 123456', '❌');
+                    showToast('Invalid OTP Code. Demo OTP is 123456', 'âŒ');
                 }
             });
 

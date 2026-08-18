@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -111,20 +111,20 @@
                     <a href="wishlist.html" class="nav-link">Wishlist</a>
                     <a href="about.html" class="nav-link">About</a>
                     <a href="contact.html" class="nav-link">Contact</a>
-                    <a href="profile.html" class="nav-link" id="nav-auth-btn">PROFILE</a>
+                    <a href="profile.html" class="nav-link" id="nav-auth-btn">LOGIN</a>
                 </nav>
 
                 <div class="header-actions">
-                    <a href="shop.html" class="icon-btn" title="Search Timepieces">🔍</a>
+                    <a href="shop.html" class="icon-btn" title="Search Timepieces">ðŸ”</a>
                     <a href="wishlist.html" class="icon-btn" title="Wishlist">
-                        ♥
+                        â™¥
                         <span class="badge-count wishlist-badge" style="display: none;">0</span>
                     </a>
                     <button class="icon-btn" id="headerCartBtn" title="Shopping Bag">
-                        🛒
+                        ðŸ›’
                         <span class="badge-count cart-badge" style="display: none;">0</span>
                     </button>
-                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">☰</button>
+                    <button class="mobile-toggle" id="mobileNavToggle" aria-label="Toggle Menu">â˜°</button>
                 </div>
             </div>
         </div>
@@ -194,7 +194,7 @@
                         Dedicated customer assistance and concierge service for SONY STORE clients.
                     </p>
                     <p style="color: var(--gold-light); font-weight: 700; font-size: 0.9rem;">
-                        ✉️ support@sonystore.com
+                        âœ‰ï¸ support@sonystore.com
                     </p>
                 </div>
             </div>
@@ -209,7 +209,7 @@
         <div class="cart-drawer">
             <div class="drawer-header">
                 <div class="drawer-title">Shopping Bag</div>
-                <button class="drawer-close" id="closeCartDrawer">✕</button>
+                <button class="drawer-close" id="closeCartDrawer">âœ•</button>
             </div>
             <div class="drawer-body" id="cartDrawerBody"></div>
             <div class="drawer-footer">
@@ -247,7 +247,7 @@
             if (orders.length === 0) {
                 container.innerHTML = `
                     <div class="glass-panel" style="text-align: center; padding: 60px 20px;">
-                        <div style="font-size: 3rem; color: var(--gold-primary); margin-bottom: 16px;">📦</div>
+                        <div style="font-size: 3rem; color: var(--gold-primary); margin-bottom: 16px;">ðŸ“¦</div>
                         <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--gold-light); margin-bottom: 8px;">No Orders Placed Yet</h3>
                         <p style="color: var(--text-muted); margin-bottom: 24px;">Explore our watch collection and place your first timepiece order.</p>
                         <a href="shop.html" class="btn-primary">Browse Collection</a>
@@ -295,7 +295,7 @@
 
                                     return `
                                         <div class="status-step ${stepClass}">
-                                            <div class="step-circle">${i < statusIdx ? '✓' : (i + 1)}</div>
+                                            <div class="step-circle">${i < statusIdx ? 'âœ“' : (i + 1)}</div>
                                             <div class="step-label">${st}</div>
                                         </div>
                                     `;
@@ -314,7 +314,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem;">
                                     <div style="display: flex; align-items: center; gap: 10px;">
                                         <img src="${item.image}" style="width: 36px; height: 36px; object-fit: contain; background: #000; border-radius: 4px;">
-                                        <span>${item.name} × ${item.quantity}</span>
+                                        <span>${item.name} Ã— ${item.quantity}</span>
                                     </div>
                                     <strong style="color: var(--gold-primary);">$${(item.price * item.quantity).toLocaleString()}</strong>
                                 </div>
@@ -324,10 +324,10 @@
                         <!-- DELIVERY & PAYMENT SUMMARY -->
                         <div style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 0.85rem; color: var(--text-muted); flex-wrap: wrap; gap: 12px;">
                             <div>
-                                📍 Delivery: <strong>${o.address.street}, ${o.address.city}, ${o.address.country}</strong>
+                                ðŸ“ Delivery: <strong>${o.address.street}, ${o.address.city}, ${o.address.country}</strong>
                             </div>
                             <div>
-                                💵 Payment: <strong>${o.paymentMethod}</strong>
+                                ðŸ’µ Payment: <strong>${o.paymentMethod}</strong>
                             </div>
                         </div>
 
