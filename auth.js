@@ -1,4 +1,4 @@
-﻿function renderUserProfile(user) {
+function renderUserProfile(user) {
   if (!user) return;
   const meta = user.user_metadata || {};
   const nameEl = document.getElementById('user-name');
@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateUI(currentSession) {
       if (currentSession && currentSession.user) {
           if (isProfilePage && createProfileView && userDashboardView) {
+              console.log("[PROFILE] rendering profile");
               createProfileView.style.display = 'none';
               userDashboardView.style.display = 'block';
               renderUserProfile(currentSession.user);
@@ -61,8 +62,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           // Call getSession() as requested to get the fully restored session
           const { data: { session } } = await supabaseClient.auth.getSession();
           
-          console.log('[PROFILE] Session:', !!session);
-          console.log('[PROFILE] User:', session?.user?.email);
+          console.log("[PROFILE] page loaded");
+          console.log("[PROFILE] session:", session);
+          console.log("[PROFILE] user:", session?.user);
+          console.log("[PROFILE] profile container:", userDashboardView);
 
           if (session && session.user) {
               updateUI(session);
