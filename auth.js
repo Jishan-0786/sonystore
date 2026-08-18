@@ -29,16 +29,16 @@ async function upsertUserProfile(user) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const isProfilePage = window.location.pathname.includes('profile');
+  const isProfilePage = window.location.pathname.toLowerCase().includes('profile');
   const createProfileView = document.getElementById('create-profile-view');
   const userDashboardView = document.getElementById('user-dashboard-view');
   const authBtn = document.getElementById('nav-auth-btn');
 
-  console.log('[AUTH DEBUG] URL:', window.location.href);
-  console.log('[AUTH DEBUG] Supabase client initialized');
+  console.log('[AUTH TRACE] URL:', window.location.href);
+  console.log('[AUTH TRACE] client initialized');
 
   if (typeof supabaseClient === 'undefined' || !supabaseClient.auth) {
-      console.warn("Supabase client not found.");
+      console.warn("[AUTH TRACE] Supabase client not found.");
       return;
   }
 
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               authBtn.href = "profile.html";
           }
           if (isProfilePage && createProfileView && userDashboardView) {
-              console.log("[PROFILE] SHOW");
+              console.log("[AUTH TRACE] showProfile");
               createProfileView.style.display = 'none';
               userDashboardView.style.display = 'block';
               renderUserProfile(currentSession.user);
@@ -59,51 +59,74 @@ document.addEventListener('DOMContentLoaded', async () => {
               authBtn.innerText = "LOGIN";
               authBtn.href = "login.html";
           }
+          if (isProfilePage && createProfileView && userDashboardView) {
+              console.log("[AUTH TRACE] showLogin (hiding dashboard)");
+              userDashboardView.style.display = 'none';
+              createProfileView.style.display = 'block';
+          }
       }
   }
 
   let authInitialized = false;
-  let hasAuthenticated = false; // Prevents race conditions from wiping out an active session
+  let hasAuthenticated = false;
 
   supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log("[AUTH DEBUG] auth event:", event);
+      console.log(`[AUTH TRACE] event: ${event}`);
       
       let sessionToUse = currentSession;
       
       if (event === 'INITIAL_SESSION') {
           authInitialized = true;
-          // Always try to fetch the most up-to-date session to avoid race conditions
-          const { data: { session } } = await supabaseClient.auth.getSession();
-          if (session) {
-              sessionToUse = session;
+          try {
+              const { data: { session }, error } = await supabaseClient.auth.getSession();
+              console.log("[AUTH TRACE] getSession");
+              if (error) console.error("[AUTH TRACE] getSession error:", error);
+              if (session) {
+                  sessionToUse = session;
+              }
+          } catch (e) {
+              console.error("[AUTH TRACE] getSession exception:", e);
           }
       }
       
-      console.log("[AUTH DEBUG] getSession:", sessionToUse);
-      console.log("[AUTH DEBUG] user:", sessionToUse?.user?.email);
+      const sessionExists = !!(sessionToUse && sessionToUse.user);
+      console.log(`[AUTH TRACE] session exists: ${sessionExists}`);
 
-      if (sessionToUse && sessionToUse.user) {
+      if (sessionExists) {
           hasAuthenticated = true;
           updateUI(sessionToUse);
           upsertUserProfile(sessionToUse.user);
           
-          if (window.location.pathname.includes('login')) {
+          if (window.location.pathname.toLowerCase().includes('login')) {
+              console.log("[AUTH TRACE] redirect (from login to profile)");
               window.location.href = '/profile';
           }
           
-          // Clean URL hash without reloading the page if it contains access_token
           if (window.location.hash.includes('access_token')) {
               window.history.replaceState(null, '', window.location.pathname + window.location.search);
           }
       } else {
-          // If we are definitely logged out
-          if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !hasAuthenticated && !window.location.hash.includes('access_token'))) {
+          // No session
+          if (event === 'SIGNED_OUT') {
+              hasAuthenticated = false;
               if (isProfilePage) {
-                  console.log("[PROFILE] HIDE/REDIRECT");
+                  console.log("[AUTH TRACE] redirect (signed out)");
                   window.location.href = '/login';
               } else {
                   updateUI(null);
               }
+          } else if (event === 'INITIAL_SESSION' && !hasAuthenticated) {
+              // Wait if there's an oauth token in the URL being processed
+              if (window.location.hash.includes('access_token')) {
+                  console.log("[AUTH TRACE] Waiting for OAuth parsing...");
+              } else if (isProfilePage) {
+                  console.log("[AUTH TRACE] redirect (no session on init)");
+                  window.location.href = '/login';
+              } else {
+                  updateUI(null);
+              }
+          } else if (!hasAuthenticated) {
+               updateUI(null);
           }
       }
   });
