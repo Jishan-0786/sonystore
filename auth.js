@@ -1,4 +1,4 @@
-function renderUserProfile(user) {
+﻿function renderUserProfile(user) {
   if (!user) return;
   const meta = user.user_metadata || {};
   const nameEl = document.getElementById('user-name');
@@ -30,54 +30,22 @@ async function upsertUserProfile(user) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   const isProfilePage = window.location.pathname.endsWith('/profile.html') || window.location.pathname.endsWith('/profile');
-  
-  // Clean hash token
-  let justCompletedOAuth = false;
-  if (window.location.hash.includes('access_token')) {
-    window.history.replaceState(null, '', window.location.pathname);
-    justCompletedOAuth = true;
-  }
-
   const createProfileView = document.getElementById('create-profile-view');
   const userDashboardView = document.getElementById('user-dashboard-view');
   const googleLoginBtnProfile = document.getElementById('google-login-btn-profile');
 
-  // Initial Session Check with Timeout Fallback
-  let session = null;
-  try {
-      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000));
-      const result = await Promise.race([
-          supabaseClient.auth.getSession(),
-          timeoutPromise
-      ]);
-      session = result.data.session;
-  } catch (e) {
-      console.warn("Supabase auth check failed or timed out. Falling back to logged-out state.", e);
-      session = null;
-  }
+  console.log('[PROFILE AUTH] initializing');
 
-  console.log('[LOGIN] Session:', !!session);
-  console.log('[LOGIN] User:', session?.user?.email);
-
-  // Redirect authenticated users away from Login page
-  if (window.location.pathname.includes('/login')) {
-      if (session?.user) {
-          window.location.href = '/profile';
-      }
-  }
-
-  // Handle OAuth callback redirect
-  if (window.location.hash.includes('access_token') || window.location.search.includes('access_token') || justCompletedOAuth) {
-      if (session?.user && !isProfilePage) {
-          window.location.href = '/profile';
-      }
-  }
-
-  // Protect Profile page from unauthenticated users
-  if (isProfilePage && (!session || !session.user)) {
-      window.location.href = '/login';
+  if (typeof supabaseClient === 'undefined' || !supabaseClient.auth) {
+      console.warn("Supabase client not found.");
       return;
   }
+
+  // Use the existing Supabase client to get the completely resolved session
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  
+  console.log('[PROFILE AUTH] session:', !!session);
+  console.log('[PROFILE AUTH] user:', session?.user?.email);
 
   function updateUI(currentSession) {
       if (currentSession && currentSession.user) {
@@ -86,30 +54,44 @@ document.addEventListener('DOMContentLoaded', async () => {
               userDashboardView.style.display = 'block';
               renderUserProfile(currentSession.user);
           }
-      } else {
-          if (isProfilePage) {
-              window.location.href = '/login';
-          }
       }
   }
 
-  // Initial update
-  updateUI(session);
-
-  // If user just logged in, upsert profile
+  // Handle the initial state NOW
   if (session && session.user) {
+      updateUI(session);
       upsertUserProfile(session.user);
+      
+      if (window.location.pathname.includes('/login')) {
+          window.location.href = '/profile';
+      }
+  } else {
+      if (isProfilePage) {
+          console.log('[PROFILE AUTH] redirecting to login');
+          window.location.href = '/login';
+          return;
+      }
   }
 
-  // Listen for auth state changes
-  if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
-      supabaseClient.auth.onAuthStateChange((event, currentSession) => {
+  // Setup onAuthStateChange for future dynamic changes
+  supabaseClient.auth.onAuthStateChange((event, currentSession) => {
+      // Ignore INITIAL_SESSION because we already awaited getSession()
+      if (event === 'INITIAL_SESSION') return;
+      
+      if (event === 'SIGNED_IN' && currentSession && currentSession.user) {
           updateUI(currentSession);
-          if (event === 'SIGNED_IN' && currentSession && currentSession.user) {
-              upsertUserProfile(currentSession.user);
+          upsertUserProfile(currentSession.user);
+          
+          if (window.location.pathname.includes('/login')) {
+              window.location.href = '/profile';
           }
-      });
-  }
+      } else if (event === 'SIGNED_OUT') {
+          if (isProfilePage) {
+              console.log('[PROFILE AUTH] redirecting to login');
+              window.location.href = '/login';
+          }
+      }
+  });
 
   // Google OAuth Login
   const googleLoginBtn = document.getElementById('google-login-btn') || document.getElementById('google-login-btn-profile');
@@ -122,7 +104,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 provider: 'google',
                 options: { redirectTo: window.location.origin + '/profile' }
               });
-              console.log("[GOOGLE AUTH RESULT]", { data, error });
               if (error) {
                   alert("Login error: " + error.message);
               }
@@ -138,7 +119,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   logoutBtns.forEach(btn => {
       btn.addEventListener('click', async () => {
         await supabaseClient.auth.signOut();
-        // UI is cleared and updated by onAuthStateChange automatically!
       });
   });
 });
+window.loginWithSupabaseEmail = async function(email, password) {
+    if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            if (data && data.user) {
+                return { success: true, user: data.user };
+            }
+        } catch (e) {
+            return { success: false, error: e };
+        }
+    }
+    return { success: false, error: new Error('Supabase client not initialized.') };
+}
+
