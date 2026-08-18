@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -355,7 +355,7 @@
                     showToast('Signed in successfully!', 'âœ“');
                     setTimeout(() => {
                         const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : '/profile';
                     }, 600);
                 } else {
                     // Fallback local signin for demo
@@ -367,7 +367,7 @@
                     showToast('Signed in (VIP Session)', 'âœ“');
                     setTimeout(() => {
                         const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : '/profile';
                     }, 600);
                 }
             });
@@ -416,7 +416,7 @@
 
                     setTimeout(() => {
                         const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : 'account.html';
+                        window.location.href = redirectParam ? decodeURIComponent(redirectParam) : '/profile';
                     }, 600);
                 } else {
                     showToast('Invalid OTP Code. Demo OTP is 123456', 'âŒ');
