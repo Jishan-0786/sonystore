@@ -59,13 +59,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('[LOGIN] Session:', !!session);
   console.log('[LOGIN] User:', session?.user?.email);
 
-  // Redirect authenticated users away from Login page or immediately after OAuth callback
-  const isLoginPage = window.location.pathname.includes('/login');
-  
-  if (session && session.user) {
-      if (isLoginPage || (justCompletedOAuth && !isProfilePage)) {
+  // Redirect authenticated users away from Login page
+  if (window.location.pathname.includes('/login')) {
+      if (session?.user) {
           window.location.href = '/profile';
-          return;
+      }
+  }
+
+  // Handle OAuth callback redirect
+  if (window.location.hash.includes('access_token') || window.location.search.includes('access_token') || justCompletedOAuth) {
+      if (session?.user && !isProfilePage) {
+          window.location.href = '/profile';
       }
   }
 
